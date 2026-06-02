@@ -1448,7 +1448,7 @@ h1,h2{
 const supabaseUrl = "https://gdmqanrkgxarxwdlxvtz.supabase.co";
 const supabaseKey = "sb_publishable_4Rll7JueMTvJhJvY7UPNZA_Dy6i2j9b";
 
-const supabase = window.supabase.createClient(
+const sb = window.supabase.createClient(
   supabaseUrl,
   supabaseKey
 );
@@ -1954,7 +1954,7 @@ async function loadUsersFromSupabase(){
   }
 
   try{
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from(SUPABASE_USERS_TABLE)
       .select("*")
       .order("created_at", { ascending:false });
@@ -1983,7 +1983,7 @@ async function saveUserToSupabase(user){
   try{
     const row = userToDbRow(user);
 
-    const { data:existing, error:selectError } = await supabase
+    const { data:existing, error:selectError } = await sb
       .from(SUPABASE_USERS_TABLE)
       .select("id")
       .eq("username", user.username)
@@ -1995,14 +1995,14 @@ async function saveUserToSupabase(user){
     }
 
     if(existing && existing.length > 0){
-      const { error:updateError } = await supabase
+      const { error:updateError } = await sb
         .from(SUPABASE_USERS_TABLE)
         .update(row)
         .eq("username", user.username);
 
       if(updateError) console.error("Supabase user update error:", updateError);
     }else{
-      const { error:insertError } = await supabase
+      const { error:insertError } = await sb
         .from(SUPABASE_USERS_TABLE)
         .insert([row]);
 
@@ -2017,7 +2017,7 @@ async function deleteUserFromSupabase(username){
   if(!window.supabase || !username) return;
 
   try{
-    const { error } = await supabase
+    const { error } = await sb
       .from(SUPABASE_USERS_TABLE)
       .delete()
       .eq("username", username);
@@ -3376,6 +3376,319 @@ document.addEventListener("visibilitychange",()=>{
     activeAudio.play().catch(()=>{});
   }
 });
+
+
+/* SUPABASE ACCOUNT FIX - added */
+function normalizeSupabaseUser(user){
+  if(!user) return null;
+  return {
+    name: user.name || "Без имени",
+    username: user.username || "",
+    password: user.password || "",
+    birthday: user.birthday || "ENHYPEN",
+    icon: user.icon || "jw.jpeg",
+    bias: user.bias || "",
+    biasWrecker: user.biasWrecker || "",
+    favSong: user.favSong || "",
+    description: user.description || "",
+    status: user.status || "chibijungwon.png",
+    lastSong: user.lastSong || ""
+  };
+}
+
+function makeSupabaseUserRow(user){
+  return {
+    username: user.username || "",
+    name: user.name || "",
+    password: user.password || "",
+    icon: user.icon || "jw.jpeg",
+    description: user.description || "",
+    bias: user.bias || "",
+    biasWrecker: user.biasWrecker || "",
+    favSong: user.favSong || ""
+  };
+}
+
+loadUsersFromSupabase = async function(){
+  try{
+    const { data, error } = await sb
+      .from("NIARI")
+      .select("*");
+
+    if(error){
+      console.error("Supabase SELECT error:", error);
+      alert("Supabase не отдаёт пользователей: " + error.message);
+      return getUsers();
+    }
+
+    let deleted = getDeletedUsers();
+    let users = (data || [])
+      .map(normalizeSupabaseUser)
+      .filter(user => user && user.username && !deleted.includes(user.username));
+
+    localStorage.setItem("users", JSON.stringify(users));
+    return users;
+  }catch(error){
+    console.error("Supabase SELECT catch:", error);
+    alert("Ошибка подключения к Supabase. Открой Console/F12 для деталей.");
+    return getUsers();
+  }
+};
+
+saveUserToSupabase = async function(user){
+  try{
+    if(!user || !user.username){
+      alert("Нет username, аккаунт не сохранён.");
+      return false;
+    }
+
+    const row = makeSupabaseUserRow(user);
+
+    const { data: existing, error: checkError } = await sb
+      .from("NIARI")
+      .select("id")
+      .eq("username", user.username)
+      .limit(1);
+
+    if(checkError){
+      console.error("Supabase CHECK error:", checkError);
+      alert("Supabase не проверяет аккаунт: " + checkError.message);
+      return false;
+    }
+
+    if(existing && existing.length > 0){
+      const { error: updateError } = await sb
+        .from("NIARI")
+        .update(row)
+        .eq("username", user.username);
+
+      if(updateError){
+        console.error("Supabase UPDATE error:", updateError);
+        alert("Supabase не обновляет аккаунт: " + updateError.message);
+        return false;
+      }
+    }else{
+      const { error: insertError } = await sb
+        .from("NIARI")
+        .insert([row]);
+
+      if(insertError){
+        console.error("Supabase INSERT error:", insertError);
+        alert("Supabase не сохраняет аккаунт: " + insertError.message);
+        return false;
+      }
+    }
+
+    await loadUsersFromSupabase();
+    return true;
+  }catch(error){
+    console.error("Supabase SAVE catch:", error);
+    alert("Ошибка сохранения в Supabase.");
+    return false;
+  }
+};
+
+registerProfile = async function(){
+  let usernameValue = username.value.trim();
+  let passwordValue = password.value.trim();
+  let users = await loadUsersFromSupabase();
+
+  if(displayName.value.trim() === ""){
+    alert("Введи имя");
+    return;
+  }
+
+  if(usernameValue === ""){
+    alert("Введи юзернейм");
+    return;
+  }
+
+  if(passwordValue === ""){
+    alert("Введи пароль");
+    return;
+  }
+
+  if(getDeletedUsers().includes(usernameValue)){
+    alert("Этот профиль удалён владельцем сайта.");
+    return;
+  }
+
+  if(users.some(u => u.username === usernameValue)){
+    alert("Такой юзернейм уже занят.");
+    return;
+  }
+
+  let newUser = {
+    name: displayName.value.trim(),
+    username: usernameValue,
+    password: passwordValue,
+    birthday: "ENHYPEN",
+    icon: chosenIcon,
+    bias: bias.value,
+    biasWrecker: biasWrecker.value,
+    favSong: favSong.value,
+    description: description.value,
+    status: chosenStatus,
+    lastSong: ""
+  };
+
+  let saved = await saveUserToSupabase(newUser);
+  if(!saved) return;
+
+  localStorage.setItem("registered","yes");
+  localStorage.setItem("name",newUser.name);
+  localStorage.setItem("username",newUser.username);
+  localStorage.setItem("oldUsername",newUser.username);
+  localStorage.setItem("password",newUser.password);
+  localStorage.setItem("birthday",newUser.birthday);
+  localStorage.setItem("icon",newUser.icon);
+  localStorage.setItem("bias",newUser.bias);
+  localStorage.setItem("biasWrecker",newUser.biasWrecker);
+  localStorage.setItem("favSong",newUser.favSong);
+  localStorage.setItem("description",newUser.description);
+  localStorage.setItem("status",newUser.status);
+  localStorage.setItem("lastSong",newUser.lastSong);
+
+  registerBlock.style.display = "none";
+  settingsBlock.style.display = "none";
+  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
+  profileBlock.style.display = "block";
+
+  showProfile();
+  await showFriend();
+  await renderOwnerDatabase();
+};
+
+loginProfile = async function(){
+  let usernameValue = loginEnter.value.trim();
+  let passwordValue = passwordEnter.value.trim();
+
+  const { data, error } = await sb
+    .from("NIARI")
+    .select("*")
+    .eq("username", usernameValue)
+    .eq("password", passwordValue)
+    .limit(1);
+
+  if(error){
+    console.error("Supabase LOGIN error:", error);
+    alert("Ошибка входа через Supabase: " + error.message);
+    return;
+  }
+
+  let user = data && data.length ? normalizeSupabaseUser(data[0]) : null;
+
+  if(!user){
+    alert("Неверный юзернейм или пароль");
+    return;
+  }
+
+  localStorage.setItem("registered","yes");
+  localStorage.setItem("name",user.name);
+  localStorage.setItem("username",user.username);
+  localStorage.setItem("oldUsername",user.username);
+  localStorage.setItem("password",user.password);
+  localStorage.setItem("birthday",user.birthday || "");
+  localStorage.setItem("icon",user.icon || "jw.jpeg");
+  localStorage.setItem("bias",user.bias || "");
+  localStorage.setItem("biasWrecker",user.biasWrecker || "");
+  localStorage.setItem("favSong",user.favSong || "");
+  localStorage.setItem("description",user.description || "");
+  localStorage.setItem("status",user.status || "chibijungwon.png");
+  localStorage.setItem("lastSong",user.lastSong || "");
+
+  chosenIcon = user.icon || "jw.jpeg";
+  chosenStatus = user.status || "chibijungwon.png";
+
+  await loadUsersFromSupabase();
+
+  registerBlock.style.display = "none";
+  settingsBlock.style.display = "none";
+  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
+  profileBlock.style.display = "block";
+
+  showProfile();
+  await showFriend();
+};
+
+renderOwnerDatabase = async function(){
+  let page = document.getElementById("ownerDatabasePage");
+  let list = document.getElementById("ownerUsersList");
+  let ownerBtn = document.getElementById("ownerDbOpenBtn");
+
+  if(ownerBtn){
+    ownerBtn.style.display = isOwner() ? "block" : "none";
+  }
+
+  if(!list) return;
+
+  if(!isOwner()){
+    if(page) page.style.display = "none";
+    return;
+  }
+
+  const { data, error } = await sb
+    .from("NIARI")
+    .select("*");
+
+  if(error){
+    console.error("Supabase OWNER SELECT error:", error);
+    list.innerHTML = "<p>Supabase ошибка: " + error.message + "</p>";
+    return;
+  }
+
+  let users = (data || []).map(normalizeSupabaseUser).filter(u => u && u.username);
+  localStorage.setItem("users", JSON.stringify(users));
+
+  if(users.length === 0){
+    list.innerHTML = "<p>Пока нет аккаунтов.</p>";
+    return;
+  }
+
+  list.innerHTML = users.map(user => `
+    <div class="ownerDbCard">
+      <img src="${user.icon || 'jw.jpeg'}">
+      <div class="ownerDbInfo">
+        <b>${user.name || 'Без имени'}</b><br>
+        <span>${user.username || ''}</span><br>
+        <small>Биас: ${user.bias || 'не выбран'}<br>Любимая песня: ${user.favSong || 'не выбрана'}</small>
+      </div>
+      <div class="ownerDbActions">
+        <button class="ownerSmallBtn" onclick="openPublicProfile('${user.username}', 'database')">Профиль</button>
+        ${user.username === OWNER_USERNAME ? '<b>Владелец</b>' : `<button class="deleteBtn" onclick="deleteUser('${user.username}')">Удалить</button>`}
+      </div>
+    </div>
+  `).join("");
+};
+
+searchUser = async function(){
+  let q = searchUsername.value.trim();
+  let users = await loadUsersFromSupabase();
+
+  searchResultsBox.style.display = "block";
+  searchResults.innerHTML = "";
+
+  let found = users.find(u => u.username === q);
+
+  if(!found){
+    searchResults.innerHTML = "<p>Пользователь не найден.</p>";
+    return;
+  }
+
+  searchResults.innerHTML = `
+    <div class="friend">
+      <img src="${found.icon || 'jw.jpeg'}">
+      <h3>${found.name || 'Без имени'}</h3>
+      <p>${found.username}</p>
+      <p>${found.description || ""}</p>
+      <button onclick="openMyProfile(); openPublicProfile('${found.username}', 'profile')">Открыть профиль</button>
+      <button onclick="toggleFollow('${found.username}')">${isFollowing(localStorage.getItem("username") || "", found.username) ? "Вы подписаны" : "Подписаться"}</button>
+      <button onclick="openChat('${found.username}')">Написать</button>
+      ${isOwner() && found.username !== OWNER_USERNAME ? `<button class="deleteBtn" onclick="deleteUser('${found.username}')">Удалить аккаунт</button>` : ""}
+    </div>
+  `;
+};
+/* END SUPABASE ACCOUNT FIX */
 
 fillSelects();
 renderStatusSelects();
