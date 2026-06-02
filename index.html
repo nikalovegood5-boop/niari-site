@@ -1442,12 +1442,382 @@ h1,h2{
 
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
 <script>
+const supabaseUrl = "https://gdmqanrkgxarxwdlxvtz.supabase.co";
+const supabaseKey = "sb_publishable_4Rll7JueMTvJhJvY7UPNZA_Dy6i2j9b";
+
+const sb = window.supabase.createClient(
+  supabaseUrl,
+  supabaseKey
+);
+</script>
+
+</head>
+
+<body>
+  <script>
+const sitePassword = "enha7";
+const enteredPassword = prompt("Введите пароль:");
+
+</script>
+
+<div class="nowPlaying" id="nowPlaying">
+  <span id="nowPlayingText">Сейчас играет:</span>
+  <div class="topControls">
+    <button onclick="playPreviousSong()">←</button>
+    <button id="topPlayBtn" onclick="toggleTopPlay()">▶</button>
+    <button onclick="playNextSong()">→</button>
+    <input type="range" id="topSeek" value="0" min="0" max="100">
+  </div>
+</div>
+
+<header>
+  <div class="profile" onclick="openMyProfile()">
+    <img id="profileIcon" src="jw.jpeg">
+  </div>
+</header>
+
+<nav>
+  <button onclick="showTab('home')">главная</button>
+  <button onclick="showTab('enha')">энха</button>
+  <button onclick="showTab('posts')">записи</button>
+  <button onclick="showTab('friends')">друзья</button>
+
+  <div class="searchBox">
+    <input id="searchUsername" placeholder="найти по юзернейму">
+    <button onclick="searchUser()">искать</button>
+  </div>
+</nav>
+
+<div class="box" id="searchResultsBox" style="display:none;">
+  <h2>Результат поиска</h2>
+  <div class="friendsGrid" id="searchResults"></div>
+</div>
+
+<div class="profilePage" id="profilePage">
+  <div class="profileOverlay">
+
+    <div id="registerBlock">
+      <div class="profilePanel">
+        <button class="backBtn" onclick="closeProfile()">←</button>
+
+        <h2>Вход</h2>
+
+        <input id="loginEnter" placeholder="юзернейм">
+
+        <div class="passwordBox">
+          <input id="passwordEnter" type="password" placeholder="пароль">
+          <button class="eyeBtn" onclick="togglePassword('passwordEnter')">👁</button>
+        </div>
+
+        <button onclick="loginProfile()">Войти</button>
+
+        <hr style="margin:25px 0;">
+
+        <h2>Регистрация</h2>
+
+        <input id="displayName" placeholder="твоё имя">
+        <input id="username" placeholder="придумай юзернейм, например @enhy7">
+
+        <div class="passwordBox">
+          <input id="password" type="password" placeholder="придумай пароль">
+          <button class="eyeBtn" onclick="togglePassword('password')">👁</button>
+        </div>
+
+        <p>Выбери аватарку:</p>
+
+        <div class="icons">
+          <img src="jw.jpeg" onclick="chooseIcon('jw.jpeg')">
+          <img src="hs.jpeg" onclick="chooseIcon('hs.jpeg')">
+          <img src="jy.jpeg" onclick="chooseIcon('jy.jpeg')">
+          <img src="jk.jpeg" onclick="chooseIcon('jk.jpeg')">
+          <img src="sh.jpeg" onclick="chooseIcon('sh.jpeg')">
+          <img src="sn.jpeg" onclick="chooseIcon('sn.jpeg')">
+          <img src="rk.jpeg" onclick="chooseIcon('rk.jpeg')">
+        </div>
+
+        <select id="bias"></select>
+        <select id="biasWrecker"></select>
+        <select id="favSong"></select>
+
+        <textarea id="description" placeholder="Описание профиля"></textarea>
+
+        <h3>Выбери статус</h3>
+        <div class="statusSelect" id="registerStatusSelect"></div>
+
+        <button onclick="registerProfile()">Зарегистрироваться</button>
+      </div>
+    </div>
+
+    <div id="profileBlock" style="display:none;">
+      <div class="profilePanel">
+        <button class="backBtn" onclick="closeProfile()">←</button>
+        <button class="editBtn" onclick="openSettings()">Изменить</button>
+        <button id="ownerDbOpenBtn" class="ownerDbBtn" onclick="openOwnerDatabase()" style="display:none;">база данных</button>
+
+        <img id="bigAvatar" class="bigAvatar" src="jw.jpeg">
+
+        <div class="nameWithStatus">
+          <h2 id="profileName">Профиль</h2>
+          <img id="profileStatus" class="statusIcon" src="chibijungwon.png">
+        </div>
+
+        <div class="profileInfo">
+          <p id="profileUsername"></p>
+          <p id="profileBirthday"></p>
+          <p id="profileDescription"></p>
+          <p id="profileFriendsCount"></p>
+          <p id="profileLastSong"></p>
+        </div>
+
+        <div class="profileCards">
+          <div class="profileMiniCard">
+            <h3>Биас</h3>
+            <img id="biasPhoto" src="jw.jpeg">
+            <p id="profileBias"></p>
+          </div>
+
+          <div class="profileMiniCard">
+            <h3>Биас врекер</h3>
+            <img id="biasWreckerPhoto" src="jw.jpeg">
+            <p id="profileBiasWrecker"></p>
+          </div>
+        </div>
+
+        <div class="profileSongBox">
+          <h3>Любимая песня</h3>
+          <p id="profileSong"></p>
+          <audio id="profileSongAudio" controls></audio>
+        </div>
+
+        <div class="profileFriendsBox" id="profileFriendsBox"></div>
+
+        <button class="logoutBtn" onclick="logoutProfile()">Выйти</button>
+      </div>
+
+      <div class="box">
+        <div class="myPostsHeader">
+          <h2>Мои записи</h2>
+          <button class="plusPostBtn" onclick="toggleProfilePostBox()">+</button>
+        </div>
+
+        <div class="profilePostBox" id="profilePostBox">
+          <textarea id="profilePostText" placeholder="Напиши запись в свой профиль..."></textarea>
+          <input id="profilePostPhoto" type="file" accept="image/*">
+          <button onclick="addProfilePost()">Опубликовать</button>
+        </div>
+
+        <div id="profilePosts"></div>
+      </div>
+    </div>
+
+
+    <div id="publicProfilePage" class="publicProfilePage">
+      <div class="publicProfilePanel">
+        <button class="backBtn" onclick="backFromPublicProfile()">←</button>
+
+        <img id="publicAvatar" class="bigAvatar" src="jw.jpeg">
+
+        <div class="nameWithStatus">
+          <h2 id="publicName">Профиль</h2>
+          <img id="publicStatus" class="statusIcon" src="chibijungwon.png">
+        </div>
+
+        <div class="profileInfo">
+          <p id="publicUsername"></p>
+          <button id="followBtn" class="followBtn" onclick="toggleFollowPublic()">Подписаться</button>
+          <p id="publicBirthday"></p>
+          <p id="publicDescription"></p>
+          <p id="publicLastSong"></p>
+        </div>
+
+        <div class="profileCards">
+          <div class="profileMiniCard">
+            <h3>Биас</h3>
+            <img id="publicBiasPhoto" src="jw.jpeg">
+            <p id="publicBias"></p>
+          </div>
+
+          <div class="profileMiniCard">
+            <h3>Биас врекер</h3>
+            <img id="publicBiasWreckerPhoto" src="jw.jpeg">
+            <p id="publicBiasWrecker"></p>
+          </div>
+        </div>
+
+        <div class="profileSongBox">
+          <h3>Любимая песня</h3>
+          <p id="publicSong"></p>
+          <audio id="publicSongAudio" controls></audio>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2 id="publicPostsTitle">Записи</h2>
+        <div id="publicPosts"></div>
+      </div>
+    </div>
+
+    <div id="ownerDatabasePage" style="display:none;">
+      <div class="ownerDbPanel">
+        <button class="backBtn" onclick="backFromOwnerDatabase()">←</button>
+        <h2>База данных сайта</h2>
+        <p>Доступ есть только у владельца сайта.</p>
+        <div id="ownerSelectedProfile" class="ownerSelectedProfile" style="display:none;"></div>
+        <div id="ownerUsersList" class="ownerDbGrid"></div>
+      </div>
+    </div>
+
+    <div id="settingsBlock" style="display:none;">
+      <div class="profilePanel">
+        <button class="backBtn" onclick="backToProfile()">←</button>
+
+        <h2>Настройки профиля</h2>
+
+        <input id="name" placeholder="Новое имя">
+        <input id="editUsername" placeholder="Новый юзернейм">
+
+        <div class="passwordBox">
+          <input id="editPassword" type="password" placeholder="Новый пароль">
+          <button class="eyeBtn" onclick="togglePassword('editPassword')">👁</button>
+        </div>
+
+        <input id="birthday" type="date">
+
+        <select id="editBias"></select>
+        <select id="editBiasWrecker"></select>
+        <select id="editFavSong"></select>
+
+        <textarea id="editDescription" placeholder="Новое описание"></textarea>
+
+        <p>Выбери иконку:</p>
+
+        <div class="icons">
+          <img src="jw.jpeg" onclick="chooseIcon('jw.jpeg')">
+          <img src="hs.jpeg" onclick="chooseIcon('hs.jpeg')">
+          <img src="jy.jpeg" onclick="chooseIcon('jy.jpeg')">
+          <img src="jk.jpeg" onclick="chooseIcon('jk.jpeg')">
+          <img src="sh.jpeg" onclick="chooseIcon('sh.jpeg')">
+          <img src="sn.jpeg" onclick="chooseIcon('sn.jpeg')">
+          <img src="rk.jpeg" onclick="chooseIcon('rk.jpeg')">
+        </div>
+
+        <h3>Изменить статус</h3>
+        <div class="statusSelect" id="editStatusSelect"></div>
+
+        <button onclick="saveProfile()">Сохранить</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="albumModal" id="albumModal">
+  <div class="albumModalBox">
+    <button class="albumClose" onclick="closeAlbum()">×</button>
+    <img id="modalAlbumImg" src="">
+    <h2 id="modalAlbumTitle"></h2>
+    <p id="modalAlbumDate"></p>
+    <h3>Треклист</h3>
+    <ol id="modalTracklist"></ol>
+  </div>
+</div>
+
+<div class="box tab active" id="home">
+  <div class="slider">
+    <button class="arrow" onclick="prevSlide()">←</button>
+    <img id="slide" src="enhy1.jpeg">
+    <button class="arrow" onclick="nextSlide()">→</button>
+  </div>
+
+  <h1>ENHYPEN IS 7</h1>
+
+  <div class="box">
+    <h2>Плэйлист — энха ис 7</h2>
+
+    <div class="playlist">
+      <div class="coverBlock">
+        <div class="coverWrap">
+          <div class="verticalVolume">
+            <span>🔊</span>
+            <input type="range" id="coverVolume" min="0" max="1" step="0.01" value="1">
+          </div>
+
+          <img id="albumCover" src="dark.jpeg">
+        </div>
+
+        <div class="coverControls">
+          <button onclick="playPreviousSong()">←</button>
+          <button id="coverPlayBtn" onclick="toggleTopPlay()">▶</button>
+          <button onclick="playNextSong()">→</button>
+        </div>
+      </div>
+
+      <div class="songs" id="songsList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="box tab" id="enha">
+  <h2>ENHYPEN</h2>
+
+  <div class="members">
+    <div class="card"><img src="jw.jpeg"><div class="info">Jungwon / Чонвон<br>09.02.2004</div></div>
+    <div class="card"><img src="hs.jpeg"><div class="info">Heeseung / Хисын<br>15.10.2001</div></div>
+    <div class="card"><img src="jy.jpeg"><div class="info">Jay / Джей<br>20.04.2002</div></div>
+    <div class="card"><img src="jk.jpeg"><div class="info">Jake / Джейк<br>15.11.2002</div></div>
+    <div class="card"><img src="sh.jpeg"><div class="info">Sunghoon / Сонхун<br>08.12.2002</div></div>
+    <div class="card"><img src="sn.jpeg"><div class="info">Sunoo / Сону<br>24.06.2003</div></div>
+    <div class="card"><img src="rk.jpeg"><div class="info">Ni-ki / Ники<br>09.12.2005</div></div>
+  </div>
+
+  <div class="discography">
+    <h2>Дискография</h2>
+    <div class="discoGrid" id="discoGrid"></div>
+  </div>
+</div>
+
+<div class="box tab" id="posts">
+  <h2>Записи</h2>
+
+  <div class="postInput">
+    <input id="postName" placeholder="Твоё имя">
+    <textarea id="postText" placeholder="Напиши запись..."></textarea>
+    <input id="postPhoto" type="file" accept="image/*">
+    <button onclick="addPost()">Добавить запись</button>
+  </div>
+
+  <div id="postsList"></div>
+</div>
+
+<div class="box tab" id="friends">
+  <h2>Друзья</h2>
+
+  <div class="friendsGrid" id="friendList"></div>
+
+  <div class="chatBox" id="chatBox">
+    <h2 id="chatTitle">Чат</h2>
+    <div class="messages" id="messages"></div>
+
+    <div class="chatInput">
+      <input id="chatText" placeholder="Напиши сообщение...">
+      <button onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============= ОСНОВНЫЕ ПЕРЕМЕННЫЕ =============
 let chosenIcon = localStorage.getItem("icon") || "jw.jpeg";
 let chosenStatus = localStorage.getItem("status") || "chibijungwon.png";
 let currentChatFriend = "";
 let activeAudio = null;
 let activeSongIndex = Number(localStorage.getItem("activeSongIndex")) || 0;
+let postsArray = JSON.parse(localStorage.getItem("postsArray")) || [];
+let messagesArray = JSON.parse(localStorage.getItem("messagesArray")) || [];
+let publicProfileBack = "profile";
 
 const statuses = [
   {name:"Чонвон", file:"chibijungwon.png"},
@@ -1509,6 +1879,12 @@ const albums = [
   {title:"THE SIN : VANISH",date:"16.01.2026",img:"vanish.jpeg",tracks:["사건의 발단 (The Beginning)","No Way Back (feat. So!YoON!)","도망자들 (The Fugitives)","Knife","Stealer","우리가 찾던 목소리 (The Voice)","목격자 (Witnesses)","Big Girls Don’t Cry","Lost Island","Sleep Tight","사건의 너머 (The Beyond)"]}
 ];
 
+const slides = ["enhy1.jpeg","enhy2.jpeg","enhy3.jpeg","enhy4.jpeg","enhy5.jpeg","enhy6.jpeg","enhy7.jpeg"];
+let currentSlide = 0;
+const OWNER_USERNAME = "nikadura";
+const SUPABASE_USERS_TABLE = "NIARI";
+
+// ============= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =============
 function togglePassword(id){
   let input = document.getElementById(id);
   input.type = input.type === "password" ? "text" : "password";
@@ -1530,38 +1906,191 @@ function getUsers(){
   return users;
 }
 
-const OWNER_USERNAME = "nikadura";
+function isOwner(){
+  return localStorage.getItem("username") === OWNER_USERNAME;
+}
 
-const SUPABASE_USERS_TABLE = "NIARI";
+function getMemberByName(name){
+  return members.find(m=>m.name===name) || members[0];
+}
 
+function getSongByTitle(title){
+  return songs.find(s=>s.title===title) || songs[0];
+}
+
+function escapeText(value){
+  return String(value || "").replace(/[&<>"]/g, function(ch){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[ch];
+  });
+}
+
+function safeId(){
+  return Date.now() + Math.floor(Math.random() * 1000000);
+}
+
+function getDbClient(){
+  if(typeof sb !== "undefined" && sb && typeof sb.from === "function"){
+    return sb;
+  }
+  return null;
+}
+
+// ============= ФУНКЦИИ ПОДПИСОК (РАБОЧАЯ ВЕРСИЯ) =============
+function getFollowsLocal(){
+  return JSON.parse(localStorage.getItem("follows") || "{}");
+}
+
+function setFollowsLocal(follows){
+  localStorage.setItem("follows", JSON.stringify(follows || {}));
+}
+
+async function loadFollowsFromSupabase(){
+  const db = getDbClient();
+  let follows = {};
+
+  if(!db){
+    return getFollowsLocal();
+  }
+
+  try{
+    const { data, error } = await db.from("follows").select("*");
+    if(error){
+      console.warn("Follows load error:", error.message);
+      return getFollowsLocal();
+    }
+
+    (data || []).forEach(row=>{
+      if(!row.follower || !row.following) return;
+      if(!follows[row.follower]) follows[row.follower] = [];
+      if(!follows[row.follower].includes(row.following)){
+        follows[row.follower].push(row.following);
+      }
+    });
+
+    setFollowsLocal(follows);
+    return follows;
+  }catch(error){
+    console.warn("Follows load catch:", error);
+    return getFollowsLocal();
+  }
+}
+
+function isFollowingLocal(fromUser, toUser){
+  let follows = getFollowsLocal();
+  return !!(follows[fromUser] && follows[fromUser].includes(toUser));
+}
+
+function areFriendsLocal(userA, userB){
+  return isFollowingLocal(userA, userB) && isFollowingLocal(userB, userA);
+}
+
+async function toggleFollow(username){
+  let myUsername = localStorage.getItem("username") || "";
+  const db = getDbClient();
+
+  if(!myUsername){
+    alert("Сначала войди в профиль.");
+    return;
+  }
+
+  if(myUsername === username) return;
+
+  let users = await loadUsersFromSupabase();
+  if(!users.some(u => u.username === username)){
+    alert("Профиль не найден.");
+    await showFriend();
+    return;
+  }
+
+  await loadFollowsFromSupabase();
+  let follows = getFollowsLocal();
+
+  if(isFollowingLocal(myUsername, username)){
+    // Отписаться
+    if(follows[myUsername]){
+      follows[myUsername] = follows[myUsername].filter(u => u !== username);
+    }
+    setFollowsLocal(follows);
+    
+    if(db){
+      await db.from("follows").delete().eq("follower", myUsername).eq("following", username);
+    }
+  }else{
+    // Подписаться
+    if(!follows[myUsername]) follows[myUsername] = [];
+    if(!follows[myUsername].includes(username)){
+      follows[myUsername].push(username);
+    }
+    setFollowsLocal(follows);
+    
+    if(db){
+      await db.from("follows").insert([{ id: safeId(), follower: myUsername, following: username }]);
+    }
+  }
+
+  await loadFollowsFromSupabase();
+  updateFollowButton(username);
+  await showFriend();
+  showProfile();
+}
+
+async function toggleFollowPublic(){
+  let usernameElem = document.getElementById("publicUsername");
+  if(usernameElem){
+    await toggleFollow(usernameElem.innerText);
+  }
+}
+
+function updateFollowButton(username){
+  let btn = document.getElementById("followBtn");
+  if(!btn) return;
+
+  let myUsername = localStorage.getItem("username") || "";
+
+  if(!myUsername || myUsername === username){
+    btn.style.display = "none";
+    return;
+  }
+
+  btn.style.display = "inline-block";
+
+  if(areFriendsLocal(myUsername, username)){
+    btn.innerText = "Вы друзья";
+  }else if(isFollowingLocal(myUsername, username)){
+    btn.innerText = "Вы подписаны";
+  }else{
+    btn.innerText = "Подписаться";
+  }
+}
+
+// ============= ПОЛЬЗОВАТЕЛИ SUPABASE =============
 function normalizeUserFromDb(user){
   if(!user) return null;
-
   return {
-    name:user.name || "Без имени",
-    username:user.username || "",
-    password:user.password || "",
-    birthday:user.birthday || "ENHYPEN",
-    icon:user.icon || "jw.jpeg",
-    bias:user.bias || "",
-    biasWrecker:user.biasWrecker || "",
-    favSong:user.favSong || "",
-    description:user.description || "",
-    status:user.status || "chibijungwon.png",
-    lastSong:user.lastSong || ""
+    name: user.name || "Без имени",
+    username: user.username || "",
+    password: user.password || "",
+    birthday: user.birthday || "ENHYPEN",
+    icon: user.icon || "jw.jpeg",
+    bias: user.bias || "",
+    biasWrecker: user.biasWrecker || "",
+    favSong: user.favSong || "",
+    description: user.description || "",
+    status: user.status || "chibijungwon.png",
+    lastSong: user.lastSong || ""
   };
 }
 
 function userToDbRow(user){
   return {
-    username:user.username || "",
-    name:user.name || "",
-    password:user.password || "",
-    icon:user.icon || "jw.jpeg",
-    description:user.description || "",
-    bias:user.bias || "",
-    biasWrecker:user.biasWrecker || "",
-    favSong:user.favSong || ""
+    username: user.username || "",
+    name: user.name || "",
+    password: user.password || "",
+    icon: user.icon || "jw.jpeg",
+    description: user.description || "",
+    bias: user.bias || "",
+    biasWrecker: user.biasWrecker || "",
+    favSong: user.favSong || ""
   };
 }
 
@@ -1571,11 +2100,7 @@ async function loadUsersFromSupabase(){
   }
 
   try{
-    const { data, error } = await sb
-      .from(SUPABASE_USERS_TABLE)
-      .select("*")
-      .order("created_at", { ascending:false });
-
+    const { data, error } = await sb.from(SUPABASE_USERS_TABLE).select("*");
     if(error){
       console.error("Supabase users load error:", error);
       return getUsers();
@@ -1599,7 +2124,6 @@ async function saveUserToSupabase(user){
 
   try{
     const row = userToDbRow(user);
-
     const { data:existing, error:selectError } = await sb
       .from(SUPABASE_USERS_TABLE)
       .select("id")
@@ -1612,18 +2136,9 @@ async function saveUserToSupabase(user){
     }
 
     if(existing && existing.length > 0){
-      const { error:updateError } = await sb
-        .from(SUPABASE_USERS_TABLE)
-        .update(row)
-        .eq("username", user.username);
-
-      if(updateError) console.error("Supabase user update error:", updateError);
+      await sb.from(SUPABASE_USERS_TABLE).update(row).eq("username", user.username);
     }else{
-      const { error:insertError } = await sb
-        .from(SUPABASE_USERS_TABLE)
-        .insert([row]);
-
-      if(insertError) console.error("Supabase user insert error:", insertError);
+      await sb.from(SUPABASE_USERS_TABLE).insert([row]);
     }
   }catch(error){
     console.error("Supabase user save error:", error);
@@ -1632,372 +2147,47 @@ async function saveUserToSupabase(user){
 
 async function deleteUserFromSupabase(username){
   if(!window.supabase || !username) return;
-
   try{
-    const { error } = await sb
-      .from(SUPABASE_USERS_TABLE)
-      .delete()
-      .eq("username", username);
-
-    if(error) console.error("Supabase user delete error:", error);
+    await sb.from(SUPABASE_USERS_TABLE).delete().eq("username", username);
   }catch(error){
     console.error("Supabase user delete error:", error);
   }
 }
 
-
-function isOwner(){
-  return localStorage.getItem("username") === OWNER_USERNAME;
-}
-
-async function getFollows(){
-
-  const { data, error } = await sb
-    .from("follows")
-    .select("*");
-
-  if(error){
-    console.error(error);
-    return {};
-  }
-
-  let follows = {};
-
-  data.forEach(row => {
-
-    if(!follows[row.follower]){
-      follows[row.follower] = [];
-    }
-
-    follows[row.follower].push(row.following);
-
-  });
-
-  return follows;
-}
-
-async function saveFollows(follows){
-
-  localStorage.setItem("follows", JSON.stringify(follows));
-
-  await sb.from("follows").delete().neq("id", 0);
-
-  let rows = [];
-
-  Object.keys(follows).forEach(user => {
-    follows[user].forEach(target => {
-      rows.push({
-        follower: user,
-        following: target
-      });
-    });
-  });
-
-  if(rows.length > 0){
-    await sb.from("follows").insert(rows);
-  }
-}
-
-function isFollowing(fromUser, toUser){
-  let follows = getFollows();
-  return !!(follows[fromUser] && follows[fromUser].includes(toUser));
-}
-
-function areFriends(userA, userB){
-  return isFollowing(userA, userB) && isFollowing(userB, userA);
-}
-
-async function toggleFollow(username){
-  let myUsername = localStorage.getItem("username") || "";
-
-  if(!myUsername){
-    alert("Сначала войди в профиль.");
-    return;
-  }
-
-  if(myUsername === username){
-    return;
-  }
-
-  let users = await loadUsersFromSupabase();
-  if(!users.some(u => u.username === username)){
-    alert("Профиль не найден.");
-    cleanDeletedData();
-    await showFriend();
-    return;
-  }
-
-  let follows = getFollows();
-  if(!follows[myUsername]) follows[myUsername] = [];
-
-  if(follows[myUsername].includes(username)){
-    follows[myUsername] = follows[myUsername].filter(u => u !== username);
-  }else{
-    follows[myUsername].push(username);
-  }
-
-  saveFollows(follows);
-  updateFollowButton(username);
-  await showFriend();
-  showProfile();
-}
-
-async function toggleFollowPublic(){
-  let username = document.getElementById("publicUsername").innerText;
-  await toggleFollow(username);
-}
-
-function updateFollowButton(username){
-  // Исправлено: проверяем существование элемента
-  let btn = document.getElementById("followBtn");
-  if(!btn) return;
-
-  let myUsername = localStorage.getItem("username") || "";
-
-  if(!myUsername || myUsername === username){
-    btn.style.display = "none";
-    return;
-  }
-
-  btn.style.display = "inline-block";
-
-  if(areFriends(myUsername, username)){
-    btn.innerText = "Вы друзья";
-  }else if(isFollowing(myUsername, username)){
-    btn.innerText = "Вы подписаны";
-  }else{
-    btn.innerText = "Подписаться";
-  }
-}
-
-function openFriendsTabFromProfile(){
-  closeProfile();
-  showTab("friends");
-}
-
-function cleanDeletedData(){
-  let users = getUsers();
-  let existing = users.map(u => u.username);
-  let existingSet = new Set(existing);
-  let deletedSet = new Set(getDeletedUsers());
-
-  let follows = getFollows();
-  Object.keys(follows).forEach(username => {
-    if(!existingSet.has(username)){
-      delete follows[username];
-    }else{
-      follows[username] = (follows[username] || []).filter(u => existingSet.has(u) && u !== username);
-    }
-  });
-  saveFollows(follows);
-
-  postsArray = postsArray.filter(post => !post.username || (existingSet.has(post.username) && !deletedSet.has(post.username)));
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
-
-  messagesArray = messagesArray.filter(msg => existingSet.has(msg.from) && existingSet.has(msg.to) && !deletedSet.has(msg.from) && !deletedSet.has(msg.to));
-  localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
-}
-
-async function openOwnerDatabase(){
-  if(!isOwner()){
-    alert("База данных доступна только владельцу сайта.");
-    return;
-  }
-
-  await loadUsersFromSupabase();
-
-  document.getElementById("profileBlock").style.display = "none";
-  document.getElementById("settingsBlock").style.display = "none";
-  document.getElementById("registerBlock").style.display = "none";
-  document.getElementById("ownerDatabasePage").style.display = "block";
-
-  await renderOwnerDatabase();
-}
-
-function backFromOwnerDatabase(){
-  document.getElementById("ownerDatabasePage").style.display = "none";
-  document.getElementById("profileBlock").style.display = "block";
-  showProfile();
-}
-
-async function renderOwnerDatabase(){
-  let page = document.getElementById("ownerDatabasePage");
-  let list = document.getElementById("ownerUsersList");
-  let ownerBtn = document.getElementById("ownerDbOpenBtn");
-
-  if(ownerBtn){
-    ownerBtn.style.display = isOwner() ? "block" : "none";
-  }
-
-  if(!list) return;
-
-  if(!isOwner()){
-    if(page) page.style.display = "none";
-    return;
-  }
-
-  let users = await loadUsersFromSupabase();
-
-  if(users.length === 0){
-    list.innerHTML = "<p>Пока нет аккаунтов.</p>";
-    return;
-  }
-
-  list.innerHTML = users.map(user => `
-    <div class="ownerDbCard">
-      <img src="${user.icon || 'jw.jpeg'}">
-      <div class="ownerDbInfo">
-        <b>${user.name || 'Без имени'}</b><br>
-        <span>${user.username || ''}</span><br>
-        <small>Биас: ${user.bias || 'не выбран'}<br>Последняя песня: ${user.lastSong || 'пока не слушал(а)'}</small>
-      </div>
-      <div class="ownerDbActions">
-        <button class="ownerSmallBtn" onclick="openPublicProfile('${user.username}', 'database')">Профиль</button>
-        ${user.username === OWNER_USERNAME ? '<b>Владелец</b>' : `<button class="deleteBtn" onclick="deleteUser('${user.username}')">Удалить</button>`}
-      </div>
-    </div>
-  `).join("");
-}
-
-function openDatabaseProfile(username){
-  if(!isOwner()) return;
-
-  let users = getUsers();
-  let user = users.find(u => u.username === username);
-  let box = document.getElementById("ownerSelectedProfile");
-
-  if(!user || !box) return;
-
-  box.style.display = "block";
-  box.innerHTML = `
-    <img src="${user.icon || 'jw.jpeg'}">
-    <h2>${user.name || 'Без имени'}</h2>
-    <p>${user.username || ''}</p>
-    <p>Описание: ${user.description || 'не добавлено'}</p>
-    <p>Биас: ${user.bias || 'не выбран'}</p>
-    <p>Биас врекер: ${user.biasWrecker || 'не выбран'}</p>
-    <p>Любимая песня: ${user.favSong || 'не выбрана'}</p>
-    <p>Последняя песня: ${user.lastSong || 'пока не слушал(а)'}</p>
-  `;
-}
-
-async function deleteUser(username){
-  if(!isOwner()){
-    alert("Удалять аккаунты может только владелец сайта.");
-    return;
-  }
-
-  if(username === OWNER_USERNAME){
-    alert("Аккаунт владельца удалить нельзя.");
-    return;
-  }
-
-  let deletedList = getDeletedUsers();
-  deletedList.push(username);
-  saveDeletedUsers(deletedList);
-
-  let deletedUser = getUsers().find(user => user.username === username);
-  let users = getUsers().filter(user => user.username !== username);
-  localStorage.setItem("users", JSON.stringify(users));
-
-  await deleteUserFromSupabase(username);
-
-  postsArray = postsArray.filter(post =>
-    post.username !== username && (!deletedUser || post.author !== deletedUser.name)
-  );
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
-
-  messagesArray = messagesArray.filter(msg => msg.from !== username && msg.to !== username);
-  localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
-
-  let follows = getFollows();
-  delete follows[username];
-  Object.keys(follows).forEach(user => {
-    follows[user] = follows[user].filter(item => item !== username);
-  });
-  saveFollows(follows);
-
-  let currentUsername = localStorage.getItem("username");
-  if(currentUsername === username){
-    logoutProfile();
-  }
-
-  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block" && publicUsername.innerText === username){
-    backFromPublicProfile();
-  }
-
-  await renderOwnerDatabase();
-  await showFriend();
-  showPosts();
-  showProfilePosts();
-  await renderProfileFriends();
-  alert("Аккаунт удалён.");
-}
-
+// ============= ФУНКЦИИ ПРОФИЛЯ =============
 function chooseStatus(status){
   chosenStatus = status;
-
-  if(document.getElementById("profileStatus")){
-    profileStatus.src = status;
-  }
-
+  if(document.getElementById("profileStatus")) profileStatus.src = status;
   document.querySelectorAll(".statusItem").forEach(item=>{
     item.classList.remove("selected");
     let img = item.querySelector("img");
-
-    if(img && img.getAttribute("src") === status){
-      item.classList.add("selected");
-    }
+    if(img && img.getAttribute("src") === status) item.classList.add("selected");
   });
 }
 
 function chooseIcon(icon){
   chosenIcon = icon;
   profileIcon.src = icon;
-
-  if(document.getElementById("bigAvatar")){
-    bigAvatar.src = icon;
-  }
-
+  if(document.getElementById("bigAvatar")) bigAvatar.src = icon;
   document.querySelectorAll(".icons img").forEach(img=>{
     img.classList.remove("selected");
-
-    if(img.getAttribute("src") === icon){
-      img.classList.add("selected");
-    }
+    if(img.getAttribute("src") === icon) img.classList.add("selected");
   });
 }
 
 function renderStatusSelects(){
   let html = "";
-
   statuses.forEach(s=>{
-    html += `
-      <div class="statusItem" onclick="chooseStatus('${s.file}')">
-        <img src="${s.file}">
-        <p>${s.name}</p>
-      </div>
-    `;
+    html += `<div class="statusItem" onclick="chooseStatus('${s.file}')"><img src="${s.file}"><p>${s.name}</p></div>`;
   });
-
   registerStatusSelect.innerHTML = html;
   editStatusSelect.innerHTML = html;
-
   chooseStatus(chosenStatus);
-}
-
-function getMemberByName(name){
-  return members.find(m=>m.name===name) || members[0];
-}
-
-function getSongByTitle(title){
-  return songs.find(s=>s.title===title) || songs[0];
 }
 
 function fillSelects(){
   let songOptions = `<option value="">Любимая песня</option>`;
   songs.forEach(s=>songOptions += `<option>${s.title}</option>`);
-
   favSong.innerHTML = songOptions;
   editFavSong.innerHTML = songOptions;
 
@@ -2014,31 +2204,21 @@ function fillSelects(){
 
 function renderSongs(){
   songsList.innerHTML = "";
-
   songs.forEach((song,index)=>{
-    songsList.innerHTML += `
-      <div class="song">
-        <p>${song.title}</p>
-        <audio preload="auto" id="audio-${index}" controls src="${song.file}" onplay="songStarted(${index}, this)"></audio>
-      </div>
-    `;
+    songsList.innerHTML += `<div class="song"><p>${song.title}</p><audio preload="auto" id="audio-${index}" controls src="${song.file}" onplay="songStarted(${index}, this)"></audio></div>`;
   });
 }
 
 function songStarted(index,audio){
   activeAudio = audio;
   activeSongIndex = index;
-
   localStorage.setItem("activeSongIndex", index);
   localStorage.setItem("lastSong", songs[index].title);
-
   activeAudio.volume = coverVolume.value;
-
   albumCover.src = songs[index].cover;
   nowPlaying.style.display = "block";
   document.body.classList.add("musicPlaying");
   nowPlayingText.innerText = "Сейчас играет: " + songs[index].title;
-
   saveUserToList();
   showProfile();
   updatePlayButtons();
@@ -2047,31 +2227,20 @@ function songStarted(index,audio){
 function playSongByIndex(index){
   if(index < 0) index = songs.length - 1;
   if(index >= songs.length) index = 0;
-
   let audio = document.getElementById("audio-" + index);
   if(audio) audio.play();
 }
 
-function playNextSong(){
-  playSongByIndex(activeSongIndex + 1);
-}
-
-function playPreviousSong(){
-  playSongByIndex(activeSongIndex - 1);
-}
+function playNextSong(){ playSongByIndex(activeSongIndex + 1); }
+function playPreviousSong(){ playSongByIndex(activeSongIndex - 1); }
 
 function toggleTopPlay(){
   if(!activeAudio){
     playSongByIndex(activeSongIndex || 0);
     return;
   }
-
-  if(activeAudio.paused){
-    activeAudio.play();
-  }else{
-    activeAudio.pause();
-  }
-
+  if(activeAudio.paused) activeAudio.play();
+  else activeAudio.pause();
   updatePlayButtons();
 }
 
@@ -2088,7 +2257,6 @@ function updatePlayButtons(){
 setInterval(()=>{
   if(activeAudio && activeAudio.duration){
     topSeek.value = (activeAudio.currentTime / activeAudio.duration) * 100;
-    localStorage.setItem("songTime", activeAudio.currentTime);
   }
 },300);
 
@@ -2099,56 +2267,33 @@ topSeek.addEventListener("input",()=>{
 });
 
 coverVolume.addEventListener("input",()=>{
-  if(activeAudio){
-    activeAudio.volume = coverVolume.value;
-  }
+  if(activeAudio) activeAudio.volume = coverVolume.value;
 });
 
 function renderAlbums(){
   discoGrid.innerHTML = "";
-
   albums.forEach((album,index)=>{
-    discoGrid.innerHTML += `
-      <div class="album">
-        <img src="${album.img}">
-        <div class="albumInfo">
-          <div>
-            ${album.title}<br>
-            ${album.date}<br>
-            <button class="albumArrow" onclick="openAlbum(${index})">➜</button>
-          </div>
-        </div>
-      </div>
-    `;
+    discoGrid.innerHTML += `<div class="album"><img src="${album.img}"><div class="albumInfo"><div>${album.title}<br>${album.date}<br><button class="albumArrow" onclick="openAlbum(${index})">➜</button></div></div></div>`;
   });
 }
 
 function openAlbum(index){
   let album = albums[index];
-
   modalAlbumImg.src = album.img;
   modalAlbumTitle.innerText = album.title;
   modalAlbumDate.innerText = album.date;
-
   modalTracklist.innerHTML = "";
-
-  album.tracks.forEach(track=>{
-    modalTracklist.innerHTML += `<li>${track}</li>`;
-  });
-
+  album.tracks.forEach(track=>{ modalTracklist.innerHTML += `<li>${track}</li>`; });
   albumModal.style.display = "flex";
 }
 
-function closeAlbum(){
-  albumModal.style.display = "none";
-}
+function closeAlbum(){ albumModal.style.display = "none"; }
 
 function openMyProfile(){
   profilePage.style.display="block";
   settingsBlock.style.display = "none";
-  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
-  if(document.getElementById("publicProfilePage")) publicProfilePage.style.display = "none";
-
+  if(ownerDatabasePage) ownerDatabasePage.style.display = "none";
+  if(publicProfilePage) publicProfilePage.style.display = "none";
   if(localStorage.getItem("registered")==="yes"){
     registerBlock.style.display="none";
     profileBlock.style.display="block";
@@ -2159,17 +2304,14 @@ function openMyProfile(){
   }
 }
 
-function closeProfile(){
-  profilePage.style.display="none";
-}
+function closeProfile(){ profilePage.style.display="none"; }
 
 function openSettings(){
   profileBlock.style.display = "none";
   registerBlock.style.display = "none";
-  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
-  if(document.getElementById("publicProfilePage")) publicProfilePage.style.display = "none";
+  if(ownerDatabasePage) ownerDatabasePage.style.display = "none";
+  if(publicProfilePage) publicProfilePage.style.display = "none";
   settingsBlock.style.display = "block";
-
   document.getElementById("name").value = localStorage.getItem("name") || "";
   document.getElementById("editUsername").value = localStorage.getItem("username") || "";
   document.getElementById("editPassword").value = localStorage.getItem("password") || "";
@@ -2178,14 +2320,13 @@ function openSettings(){
   document.getElementById("editBiasWrecker").value = localStorage.getItem("biasWrecker") || "";
   document.getElementById("editFavSong").value = localStorage.getItem("favSong") || "";
   document.getElementById("editDescription").value = localStorage.getItem("description") || "";
-
   chooseIcon(localStorage.getItem("icon") || "jw.jpeg");
   chooseStatus(localStorage.getItem("status") || "chibijungwon.png");
 }
 
 function backToProfile(){
   settingsBlock.style.display = "none";
-  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
+  if(ownerDatabasePage) ownerDatabasePage.style.display = "none";
   profileBlock.style.display = "block";
   showProfile();
 }
@@ -2193,13 +2334,11 @@ function backToProfile(){
 async function saveUserToList(){
   let users = getUsers();
   let currentUsername = localStorage.getItem("username");
-
   let deleted = getDeletedUsers();
   if(deleted.includes(currentUsername)){
     logoutProfile();
     return;
   }
-
   let user = {
     name: localStorage.getItem("name"),
     username: localStorage.getItem("username"),
@@ -2213,10 +2352,8 @@ async function saveUserToList(){
     status: localStorage.getItem("status"),
     lastSong: localStorage.getItem("lastSong")
   };
-
   users = users.filter(u => u.username !== user.username);
   users.push(user);
-
   localStorage.setItem("users", JSON.stringify(users));
   await saveUserToSupabase(user);
 }
@@ -2230,25 +2367,19 @@ async function registerProfile(){
     alert("Введи имя");
     return;
   }
-
   if(usernameValue === ""){
     alert("Введи юзернейм");
     return;
   }
-
   if(passwordValue === ""){
     alert("Введи пароль");
     return;
   }
-
   if(getDeletedUsers().includes(usernameValue)){
     alert("Этот профиль удалён владельцем сайта.");
     return;
   }
-
-  let usernameBusy = users.some(u=>u.username === usernameValue);
-
-  if(usernameBusy){
+  if(users.some(u=>u.username === usernameValue)){
     alert("Такой юзернейм уже занят.");
     return;
   }
@@ -2271,9 +2402,8 @@ async function registerProfile(){
 
   registerBlock.style.display="none";
   settingsBlock.style.display="none";
-  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display="none";
+  if(ownerDatabasePage) ownerDatabasePage.style.display="none";
   profileBlock.style.display="block";
-
   showProfile();
   await showFriend();
   await renderOwnerDatabase();
@@ -2288,9 +2418,7 @@ async function loginProfile(){
     alert("Этот профиль удалён владельцем сайта.");
     return;
   }
-
   let user = users.find(u=>u.username === usernameValue && u.password === passwordValue);
-
   if(!user){
     alert("Неверный юзернейм или пароль");
     return;
@@ -2315,127 +2443,10 @@ async function loginProfile(){
 
   registerBlock.style.display="none";
   settingsBlock.style.display="none";
-  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display="none";
+  if(ownerDatabasePage) ownerDatabasePage.style.display="none";
   profileBlock.style.display="block";
-
   showProfile();
   await showFriend();
-}
-
-
-let publicProfileBack = "profile";
-
-function toggleProfileFriends(){
-  let box = document.getElementById("profileFriendsBox");
-  if(!box) return;
-
-  if(box.style.display === "block"){
-    box.style.display = "none";
-    return;
-  }
-
-  renderProfileFriends();
-  box.style.display = "block";
-}
-
-async function renderProfileFriends(){
-  let box = document.getElementById("profileFriendsBox");
-  if(!box) return;
-
-  let myUsername = localStorage.getItem("username") || "";
-  let users = (await loadUsersFromSupabase()).filter(u => u.username !== myUsername && areFriends(myUsername, u.username));
-
-  if(users.length === 0){
-    box.innerHTML = "<p>Пока нет друзей.</p>";
-    return;
-  }
-
-  box.innerHTML = users.map(user => `
-    <div class="profileFriendItem">
-      <div class="profileFriendMain">
-        <img src="${user.icon || 'jw.jpeg'}">
-        <div>
-          <b>${user.name || 'Без имени'}</b><br>
-          <span>${user.username || ''}</span>
-        </div>
-      </div>
-      <button class="friendProfileBtn" onclick="openPublicProfile('${user.username}', 'profile')">Открыть</button>
-    </div>
-  `).join("");
-}
-
-async function openPublicProfile(username, backPlace){
-  let users = await loadUsersFromSupabase();
-  let user = users.find(u => u.username === username);
-
-  if(!user){
-    alert("Профиль не найден.");
-    return;
-  }
-
-  publicProfileBack = backPlace || "profile";
-
-  registerBlock.style.display = "none";
-  profileBlock.style.display = "none";
-  settingsBlock.style.display = "none";
-  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
-  document.getElementById("publicProfilePage").style.display = "block";
-
-  let biasMember = getMemberByName(user.bias || "Jungwon");
-  let wreckerMember = getMemberByName(user.biasWrecker || "Jungwon");
-  let song = getSongByTitle(user.favSong || "Bills");
-
-  publicAvatar.src = user.icon || "jw.jpeg";
-  publicName.innerText = user.name || "Без имени";
-  publicStatus.src = user.status || "chibijungwon.png";
-  publicUsername.innerText = user.username || "";
-  updateFollowButton(user.username || "");
-  publicBirthday.innerText = user.birthday || "";
-  publicDescription.innerText = "Описание: " + (user.description || "описание не добавлено");
-  publicLastSong.innerText = "Последняя песня: " + (user.lastSong || "пока не слушал(а)");
-
-  publicBiasPhoto.src = biasMember.img;
-  publicBias.innerText = user.bias || "не выбран";
-
-  publicBiasWreckerPhoto.src = wreckerMember.img;
-  publicBiasWrecker.innerText = user.biasWrecker || "не выбран";
-
-  publicSong.innerText = user.favSong || "не выбрана";
-  publicSongAudio.src = song.file;
-
-  renderPublicPosts(user.username);
-}
-
-function backFromPublicProfile(){
-  document.getElementById("publicProfilePage").style.display = "none";
-
-  if(publicProfileBack === "database" && isOwner()){
-    ownerDatabasePage.style.display = "block";
-    renderOwnerDatabase();
-  }else{
-    profileBlock.style.display = "block";
-    showProfile();
-  }
-}
-
-function renderPublicPosts(user){
-  let box = document.getElementById("publicPosts");
-  if(!box) return;
-
-  box.innerHTML = "";
-
-  let userPosts = postsArray.filter(post =>
-    post.username === user.username || post.author === user.name
-  );
-
-  if(userPosts.length === 0){
-    box.innerHTML = "<p>Пока нет записей.</p>";
-    return;
-  }
-
-  userPosts.forEach(post=>{
-    box.innerHTML += createPostHTML(post);
-  });
 }
 
 function showProfile(){
@@ -2459,43 +2470,31 @@ function showProfile(){
   profileUsername.innerText = usernameValue;
   profileBirthday.innerText = birthdayValue;
   profileDescription.innerText = "Описание: " + descriptionValue;
-  let friendsCount = getUsers().filter(u => u.username !== usernameValue && areFriends(usernameValue, u.username)).length;
+  let friendsCount = getUsers().filter(u => u.username !== usernameValue && areFriendsLocal(usernameValue, u.username)).length;
   profileFriendsCount.innerHTML = `<button class="profileFriendsBtn" onclick="openFriendsTabFromProfile()">Друзей: ${friendsCount}</button>`;
   profileLastSong.innerText = "Последняя песня: " + lastSongValue;
-
   profileBias.innerText = biasMember.name;
   biasPhoto.src = biasMember.img;
-
   profileBiasWrecker.innerText = wreckerMember.name;
   biasWreckerPhoto.src = wreckerMember.img;
-
   profileSong.innerText = song.title;
   profileSongAudio.src = song.file;
-  profileSongAudio.onplay = function(){
-    songStarted(songs.indexOf(song), profileSongAudio);
-  };
-
+  profileSongAudio.onplay = function(){ songStarted(songs.indexOf(song), profileSongAudio); };
   bigAvatar.src = icon;
   profileIcon.src = icon;
-
   showProfilePosts();
   renderOwnerDatabase();
 }
 
 function logoutProfile(){
-  ["registered","name","username","oldUsername","birthday","icon","bias","biasWrecker","favSong","description","status","password"].forEach(item=>{
-    localStorage.removeItem(item);
-  });
-
+  ["registered","name","username","oldUsername","birthday","icon","bias","biasWrecker","favSong","description","status","password"].forEach(item=>{ localStorage.removeItem(item); });
   chosenIcon = "jw.jpeg";
   chosenStatus = "chibijungwon.png";
-
   profileIcon.src = "jw.jpeg";
   registerBlock.style.display = "block";
   profileBlock.style.display = "none";
   settingsBlock.style.display = "none";
-  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
-
+  if(ownerDatabasePage) ownerDatabasePage.style.display = "none";
   showFriend();
 }
 
@@ -2503,37 +2502,15 @@ async function saveProfile(){
   let newName = document.getElementById("name").value.trim();
   let newUsername = document.getElementById("editUsername").value.trim();
   let newPassword = document.getElementById("editPassword").value.trim();
-
-  if(newName === ""){
-    alert("Имя не может быть пустым");
-    return;
-  }
-
-  if(newUsername === ""){
-    alert("Юзернейм не может быть пустым");
-    return;
-  }
-
-  if(newPassword === ""){
-    alert("Пароль не может быть пустым");
-    return;
-  }
+  if(newName === ""){ alert("Имя не может быть пустым"); return; }
+  if(newUsername === ""){ alert("Юзернейм не может быть пустым"); return; }
+  if(newPassword === ""){ alert("Пароль не может быть пустым"); return; }
 
   let users = await loadUsersFromSupabase();
   let oldUsername = localStorage.getItem("username");
-
-  let usernameBusy = users.some(u =>
-    u.username === newUsername && u.username !== oldUsername
-  );
-
-  if(usernameBusy){
-    alert("Такой юзернейм уже занят.");
-    return;
-  }
-
-  if(oldUsername && oldUsername !== newUsername){
-    await deleteUserFromSupabase(oldUsername);
-  }
+  let usernameBusy = users.some(u => u.username === newUsername && u.username !== oldUsername);
+  if(usernameBusy){ alert("Такой юзернейм уже занят."); return; }
+  if(oldUsername && oldUsername !== newUsername){ await deleteUserFromSupabase(oldUsername); }
 
   localStorage.setItem("name", newName);
   localStorage.setItem("username", newUsername);
@@ -2548,103 +2525,162 @@ async function saveProfile(){
   localStorage.setItem("status", chosenStatus);
 
   await saveUserToList();
-
   chosenIcon = localStorage.getItem("icon") || "jw.jpeg";
   chosenStatus = localStorage.getItem("status") || "chibijungwon.png";
-
   document.getElementById("settingsBlock").style.display = "none";
   document.getElementById("registerBlock").style.display = "none";
-  if(document.getElementById("ownerDatabasePage")) document.getElementById("ownerDatabasePage").style.display = "none";
+  if(ownerDatabasePage) ownerDatabasePage.style.display = "none";
   document.getElementById("profileBlock").style.display = "block";
-
   showProfile();
   await showFriend();
   await renderOwnerDatabase();
   chooseIcon(chosenIcon);
   chooseStatus(chosenStatus);
-
   document.getElementById("profilePage").scrollTop = 0;
 }
 
-async function searchUser(){
-  let q = searchUsername.value.trim();
+// ============= ПУБЛИЧНЫЙ ПРОФИЛЬ =============
+async function openPublicProfile(username, backPlace){
   let users = await loadUsersFromSupabase();
+  let user = users.find(u => u.username === username);
+  if(!user){ alert("Профиль не найден."); return; }
+  publicProfileBack = backPlace || "profile";
+  registerBlock.style.display = "none";
+  profileBlock.style.display = "none";
+  settingsBlock.style.display = "none";
+  if(ownerDatabasePage) ownerDatabasePage.style.display = "none";
+  document.getElementById("publicProfilePage").style.display = "block";
 
-  searchResultsBox.style.display = "block";
-  searchResults.innerHTML = "";
+  let biasMember = getMemberByName(user.bias || "Jungwon");
+  let wreckerMember = getMemberByName(user.biasWrecker || "Jungwon");
+  let song = getSongByTitle(user.favSong || "Bills");
 
-  let found = users.find(u=>u.username === q);
-
-  if(!found){
-    searchResults.innerHTML = "<p>Пользователь не найден.</p>";
-    return;
-  }
-
-  searchResults.innerHTML = `
-    <div class="friend">
-      <img src="${found.icon || 'jw.jpeg'}">
-      <h3>${found.name || 'Без имени'}</h3>
-      <p>${found.username}</p>
-      <p>${found.description || ""}</p>
-      <p>Последняя песня: ${found.lastSong || "пока не слушал(а)"}</p>
-      <button onclick="openMyProfile(); openPublicProfile('${found.username}', 'profile')">Открыть профиль</button>
-      <button onclick="toggleFollow('${found.username}')">${isFollowing(localStorage.getItem("username") || "", found.username) ? "Вы подписаны" : "Подписаться"}</button>
-      <button onclick="openChat('${found.username}')">Написать</button>
-      ${isOwner() && found.username !== OWNER_USERNAME ? `<button class="deleteBtn" onclick="deleteUser('${found.username}')">Удалить аккаунт</button>` : ""}
-    </div>
-  `;
+  publicAvatar.src = user.icon || "jw.jpeg";
+  publicName.innerText = user.name || "Без имени";
+  publicStatus.src = user.status || "chibijungwon.png";
+  publicUsername.innerText = user.username || "";
+  updateFollowButton(user.username || "");
+  publicBirthday.innerText = user.birthday || "";
+  publicDescription.innerText = "Описание: " + (user.description || "описание не добавлено");
+  publicLastSong.innerText = "Последняя песня: " + (user.lastSong || "пока не слушал(а)");
+  publicBiasPhoto.src = biasMember.img;
+  publicBias.innerText = user.bias || "не выбран";
+  publicBiasWreckerPhoto.src = wreckerMember.img;
+  publicBiasWrecker.innerText = user.biasWrecker || "не выбран";
+  publicSong.innerText = user.favSong || "не выбрана";
+  publicSongAudio.src = song.file;
+  renderPublicPosts(user.username);
 }
 
-let postsArray = JSON.parse(localStorage.getItem("postsArray")) || [];
+function backFromPublicProfile(){
+  document.getElementById("publicProfilePage").style.display = "none";
+  if(publicProfileBack === "database" && isOwner()){
+    ownerDatabasePage.style.display = "block";
+    renderOwnerDatabase();
+  }else{
+    profileBlock.style.display = "block";
+    showProfile();
+  }
+}
+
+function renderPublicPosts(user){
+  let box = document.getElementById("publicPosts");
+  if(!box) return;
+  box.innerHTML = "";
+  let userPosts = postsArray.filter(post => post.username === user.username || post.author === user.name);
+  if(userPosts.length === 0){ box.innerHTML = "<p>Пока нет записей.</p>"; return; }
+  userPosts.forEach(post=>{ box.innerHTML += createPostHTML(post); });
+}
+
+// ============= ЗАПИСИ И КОММЕНТАРИИ =============
+function createPostHTML(post){
+  if(!post.comments) post.comments = [];
+  let postUser = getUsers().find(u => u.username === post.username) || getUsers().find(u => u.name === post.author);
+  let postUsername = post.username || (postUser ? postUser.username : "");
+  let postAvatar = postUser ? (postUser.icon || "jw.jpeg") : "jw.jpeg";
+  let commentsHTML = "";
+
+  post.comments.forEach((comment, commentIndex)=>{
+    if(!comment.replies) comment.replies = [];
+    let commentUser = getUsers().find(u => u.username === comment.username) || getUsers().find(u => u.name === comment.name);
+    let commentUsername = comment.username || (commentUser ? commentUser.username : "");
+    let commentAvatar = comment.icon || (commentUser ? commentUser.icon : "jw.jpeg") || "jw.jpeg";
+    let repliesHTML = "";
+    comment.replies.forEach(reply=>{
+      let replyUser = getUsers().find(u => u.username === reply.username) || getUsers().find(u => u.name === reply.name);
+      let replyUsername = reply.username || (replyUser ? replyUser.username : "");
+      let replyAvatar = reply.icon || (replyUser ? replyUser.icon : "jw.jpeg") || "jw.jpeg";
+      repliesHTML += `<div class="reply"><div class="replyTop"><img class="replyAvatar" src="${replyAvatar}" onclick="openProfileFromPost('${replyUsername}')"><span class="replyName" onclick="openProfileFromPost('${replyUsername}')">${escapeText(reply.name || 'Гость')}</span></div><div>${escapeText(reply.text)}</div></div>`;
+    });
+    commentsHTML += `<div class="comment"><div class="commentTop"><img class="commentAvatar" src="${commentAvatar}" onclick="openProfileFromPost('${commentUsername}')"><span class="commentName" onclick="openProfileFromPost('${commentUsername}')">${escapeText(comment.name || 'Гость')}</span></div><div>${escapeText(comment.text)}</div><div class="replyBox">${repliesHTML}<div class="replyInputRow"><input id="reply-${post.id}-${commentIndex}" placeholder="Ответить на комментарий..."><button class="replyBtn" onclick="addReply(${post.id}, ${commentIndex})">Ответить</button></div></div></div>`;
+  });
+
+  return `<div class="post"><div class="postAuthorRow"><img class="postUserAvatar" src="${postAvatar}" onclick="openProfileFromPost('${postUsername}')"><span class="postAuthorName" onclick="openProfileFromPost('${postUsername}')">${escapeText(post.author)}</span></div><div>${escapeText(post.text)}</div>${post.photo ? `<img src="${post.photo}">` : ""}<button class="likeBtn" onclick="likePost(${post.id})">♡ ${post.likes}</button>${canDeletePost(post) ? `<button class="deleteBtn" onclick="deletePost(${post.id})">Удалить запись</button>` : ""}<div><div class="commentInputRow"><input id="comment-${post.id}" placeholder="Комментарий..."><button class="commentSendBtn" onclick="addComment(${post.id})">Отправить</button></div>${commentsHTML}</div></div>`;
+}
+
+function showPosts(){
+  postsList.innerHTML="";
+  postsArray.forEach(post=>{ postsList.innerHTML += createPostHTML(post); });
+}
+
+function showProfilePosts(){
+  if(!document.getElementById("profilePosts")) return;
+  profilePosts.innerHTML="";
+  let myName = localStorage.getItem("name") || "Гость";
+  let myUsername = localStorage.getItem("username") || "";
+  postsArray.filter(post=>post.author===myName || post.username===myUsername).forEach(post=>{ profilePosts.innerHTML += createPostHTML(post); });
+}
+
+function canDeletePost(post){
+  let myName = localStorage.getItem("name") || "Гость";
+  let myUsername = localStorage.getItem("username") || "";
+  return post.author === myName || post.username === myUsername || isOwner();
+}
+
+function findUserByPostInfo(username, name){
+  let users = getUsers();
+  return users.find(u => u.username === username) || users.find(u => u.name === name) || null;
+}
+
+function openProfileFromPost(username){
+  let myUsername = localStorage.getItem("username") || "";
+  if(!username) return;
+  if(username === myUsername){ openMyProfile(); return; }
+  openMyProfile();
+  setTimeout(()=>openPublicProfile(username, "profile"), 0);
+}
 
 function toggleProfilePostBox(){
   let box = document.getElementById("profilePostBox");
-  if(!box) return;
-  box.style.display = box.style.display === "block" ? "none" : "block";
+  if(box) box.style.display = box.style.display === "block" ? "none" : "block";
 }
 
 function addProfilePost(){
   let text = document.getElementById("profilePostText").value;
   let file = document.getElementById("profilePostPhoto").files[0];
   let author = localStorage.getItem("name") || "Гость";
-
-  if(text === "" && !file){
-    alert("Напиши запись или добавь фото");
-    return;
-  }
-
+  if(text === "" && !file){ alert("Напиши запись или добавь фото"); return; }
   if(file){
     let reader = new FileReader();
-    reader.onload = function(e){
-      savePost(author, text, e.target.result);
-      document.getElementById("profilePostText").value = "";
-      document.getElementById("profilePostPhoto").value = "";
-      document.getElementById("profilePostBox").style.display = "none";
-    };
+    reader.onload = function(e){ savePost(author, text, e.target.result); clearProfilePostInputs(); };
     reader.readAsDataURL(file);
-  }else{
-    savePost(author, text, "");
-    document.getElementById("profilePostText").value = "";
-    document.getElementById("profilePostPhoto").value = "";
-    document.getElementById("profilePostBox").style.display = "none";
-  }
+  }else{ savePost(author, text, ""); clearProfilePostInputs(); }
+}
+
+function clearProfilePostInputs(){
+  document.getElementById("profilePostText").value = "";
+  document.getElementById("profilePostPhoto").value = "";
+  document.getElementById("profilePostBox").style.display = "none";
 }
 
 function deletePost(id){
   let post = postsArray.find(p => p.id === id);
   let myName = localStorage.getItem("name") || "Гость";
   let myUsername = localStorage.getItem("username") || "";
-
   if(!post) return;
-
-  if(post.author !== myName && post.username !== myUsername && !isOwner()){
-    alert("Можно удалять только свои записи.");
-    return;
-  }
-
+  if(post.author !== myName && post.username !== myUsername && !isOwner()){ alert("Можно удалять только свои записи."); return; }
   postsArray = postsArray.filter(p => p.id !== id);
   localStorage.setItem("postsArray", JSON.stringify(postsArray));
-
   showPosts();
   showProfilePosts();
   if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
@@ -2657,21 +2693,18 @@ function addPost(){
   let author = postName.value || localStorage.getItem("name") || "Гость";
   let text = postText.value;
   let file = postPhoto.files[0];
-
-  if(text === "" && !file){
-    alert("Напиши запись или добавь фото");
-    return;
-  }
-
+  if(text === "" && !file){ alert("Напиши запись или добавь фото"); return; }
   if(file){
     let reader = new FileReader();
-    reader.onload = function(e){
-      savePost(author,text,e.target.result);
-    };
+    reader.onload = function(e){ savePost(author,text,e.target.result); clearPostInputs(); };
     reader.readAsDataURL(file);
-  }else{
-    savePost(author,text,"");
-  }
+  }else{ savePost(author,text,""); clearPostInputs(); }
+}
+
+function clearPostInputs(){
+  postName.value="";
+  postText.value="";
+  postPhoto.value="";
 }
 
 function savePost(author,text,photo){
@@ -2684,157 +2717,18 @@ function savePost(author,text,photo){
     likes:0,
     comments:[]
   });
-
   localStorage.setItem("postsArray",JSON.stringify(postsArray));
-
-  postName.value="";
-  postText.value="";
-  postPhoto.value="";
-
   showPosts();
   showProfilePosts();
   if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
     let u = getUsers().find(x => x.username === publicUsername.innerText);
     if(u) renderPublicPosts(u);
   }
-}
-
-function canDeletePost(post){
-  let myName = localStorage.getItem("name") || "Гость";
-  let myUsername = localStorage.getItem("username") || "";
-  return post.author === myName || post.username === myUsername || isOwner();
-}
-
-function escapeText(value){
-  return String(value || "").replace(/[&<>"]/g, function(ch){
-    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[ch];
-  });
-}
-
-function findUserByPostInfo(username, name){
-  let users = getUsers();
-  return users.find(u => u.username === username) || users.find(u => u.name === name) || null;
-}
-
-function openProfileFromPost(username){
-  let myUsername = localStorage.getItem("username") || "";
-
-  if(!username) return;
-
-  if(username === myUsername){
-    openMyProfile();
-    return;
-  }
-
-  openMyProfile();
-  setTimeout(()=>openPublicProfile(username, "profile"), 0);
-}
-
-function createPostHTML(post){
-  if(!post.comments) post.comments = [];
-
-  let postUser = findUserByPostInfo(post.username, post.author);
-  let postUsername = post.username || (postUser ? postUser.username : "");
-  let postAvatar = postUser ? (postUser.icon || "jw.jpeg") : "jw.jpeg";
-  let commentsHTML = "";
-
-  post.comments.forEach((comment, commentIndex)=>{
-    if(!comment.replies) comment.replies = [];
-
-    let commentUser = findUserByPostInfo(comment.username, comment.name);
-    let commentUsername = comment.username || (commentUser ? commentUser.username : "");
-    let commentAvatar = comment.icon || (commentUser ? commentUser.icon : "jw.jpeg") || "jw.jpeg";
-
-    let repliesHTML = "";
-    comment.replies.forEach(reply=>{
-      let replyUser = findUserByPostInfo(reply.username, reply.name);
-      let replyUsername = reply.username || (replyUser ? replyUser.username : "");
-      let replyAvatar = reply.icon || (replyUser ? replyUser.icon : "jw.jpeg") || "jw.jpeg";
-
-      repliesHTML += `
-        <div class="reply">
-          <div class="replyTop">
-            <img class="replyAvatar" src="${replyAvatar}" onclick="openProfileFromPost('${replyUsername}')">
-            <span class="replyName" onclick="openProfileFromPost('${replyUsername}')">${escapeText(reply.name || 'Гость')}</span>
-          </div>
-          <div>${escapeText(reply.text)}</div>
-        </div>
-      `;
-    });
-
-    commentsHTML += `
-      <div class="comment">
-        <div class="commentTop">
-          <img class="commentAvatar" src="${commentAvatar}" onclick="openProfileFromPost('${commentUsername}')">
-          <span class="commentName" onclick="openProfileFromPost('${commentUsername}')">${escapeText(comment.name || 'Гость')}</span>
-        </div>
-        <div>${escapeText(comment.text)}</div>
-        <div class="replyBox">
-          ${repliesHTML}
-          <div class="replyInputRow">
-            <input id="reply-${post.id}-${commentIndex}" placeholder="Ответить на комментарий...">
-            <button class="replyBtn" onclick="addReply(${post.id}, ${commentIndex})">Ответить</button>
-          </div>
-        </div>
-      </div>
-    `;
-  });
-
-  return `
-    <div class="post">
-      <div class="postAuthorRow">
-        <img class="postUserAvatar" src="${postAvatar}" onclick="openProfileFromPost('${postUsername}')">
-        <span class="postAuthorName" onclick="openProfileFromPost('${postUsername}')">${escapeText(post.author)}</span>
-      </div>
-      <div>${escapeText(post.text)}</div>
-      ${post.photo ? `<img src="${post.photo}">` : ""}
-      <button class="likeBtn" onclick="likePost(${post.id})">♡ ${post.likes}</button>
-      ${canDeletePost(post) ? `<button class="deleteBtn" onclick="deletePost(${post.id})">Удалить запись</button>` : ""}
-      <div>
-        <div class="commentInputRow">
-          <input id="comment-${post.id}" placeholder="Комментарий...">
-          <button class="commentSendBtn" onclick="addComment(${post.id})">Отправить</button>
-        </div>
-        ${commentsHTML}
-      </div>
-    </div>
-  `;
-}
-
-function showPosts(){
-  postsList.innerHTML="";
-  postsArray.forEach(post=>{
-    postsList.innerHTML += createPostHTML(post);
-  });
-}
-
-function showProfilePosts(){
-  if(!document.getElementById("profilePosts")) return;
-
-  profilePosts.innerHTML="";
-  let myName = localStorage.getItem("name") || "Гость";
-  let myUsername = localStorage.getItem("username") || "";
-
-  postsArray
-    .filter(post=>post.author===myName || post.username===myUsername)
-    .forEach(post=>{
-      profilePosts.innerHTML += createPostHTML(post);
-    });
 }
 
 function likePost(id){
   let post = postsArray.find(p=>p.id===id);
   post.likes++;
-  localStorage.setItem("postsArray",JSON.stringify(postsArray));
-  showPosts();
-  showProfilePosts();
-  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
-    let u = getUsers().find(x => x.username === publicUsername.innerText);
-    if(u) renderPublicPosts(u);
-  }
-}
-
-function refreshPostsEverywhere(){
   localStorage.setItem("postsArray",JSON.stringify(postsArray));
   showPosts();
   showProfilePosts();
@@ -2850,86 +2744,48 @@ function addComment(id){
   let nameValue = localStorage.getItem("name") || "Гость";
   let usernameValue = localStorage.getItem("username") || "";
   let iconValue = localStorage.getItem("icon") || "jw.jpeg";
-
   if(text === "") return;
-
   let post = postsArray.find(p=>p.id===id);
   if(!post) return;
   if(!post.comments) post.comments = [];
-
-  post.comments.push({
-    name:nameValue,
-    username:usernameValue,
-    icon:iconValue,
-    text:text,
-    replies:[]
-  });
-
+  post.comments.push({ name:nameValue, username:usernameValue, icon:iconValue, text:text, replies:[] });
   input.value = "";
-  refreshPostsEverywhere();
+  localStorage.setItem("postsArray",JSON.stringify(postsArray));
+  showPosts();
+  showProfilePosts();
 }
 
 function addReply(postId, commentIndex){
   let input = document.getElementById("reply-" + postId + "-" + commentIndex);
   if(!input) return;
-
   let text = input.value.trim();
   let nameValue = localStorage.getItem("name") || "Гость";
   let usernameValue = localStorage.getItem("username") || "";
   let iconValue = localStorage.getItem("icon") || "jw.jpeg";
-
   if(text === "") return;
-
   let post = postsArray.find(p=>p.id===postId);
   if(!post || !post.comments || !post.comments[commentIndex]) return;
-
-  if(!post.comments[commentIndex].replies){
-    post.comments[commentIndex].replies = [];
-  }
-
-  post.comments[commentIndex].replies.push({
-    name:nameValue,
-    username:usernameValue,
-    icon:iconValue,
-    text:text
-  });
-
+  if(!post.comments[commentIndex].replies) post.comments[commentIndex].replies = [];
+  post.comments[commentIndex].replies.push({ name:nameValue, username:usernameValue, icon:iconValue, text:text });
   input.value = "";
-  refreshPostsEverywhere();
+  localStorage.setItem("postsArray",JSON.stringify(postsArray));
+  showPosts();
+  showProfilePosts();
 }
 
+// ============= ДРУЗЬЯ И ЧАТ =============
 async function showFriend(){
-  cleanDeletedData();
-
+  await loadFollowsFromSupabase();
   let myUsername = localStorage.getItem("username") || "";
-  let friends = (await loadUsersFromSupabase()).filter(u => u.username !== myUsername && areFriends(myUsername, u.username));
-
+  let users = await loadUsersFromSupabase();
+  let friends = users.filter(u => u.username !== myUsername && areFriendsLocal(myUsername, u.username));
   profileIcon.src = localStorage.getItem("icon") || "jw.jpeg";
-
   if(!myUsername){
     friendList.innerHTML = "Сначала войди в профиль, чтобы видеть друзей.";
     return;
   }
-
-  let friendsHTML = friends.length === 0
-    ? "<p>Пока нет друзей. Друг появится, когда вы подпишетесь друг на друга.</p>"
-    : friends.map(user => `
-      <div class="friend">
-        <img src="${user.icon || 'jw.jpeg'}">
-        <h3>${user.name || 'Без имени'}</h3>
-        <p>${user.username || ''}</p>
-        <div class="mutualBadge">вы друзья</div>
-        <button onclick="openMyProfile(); openPublicProfile('${user.username}', 'profile')">Открыть профиль</button>
-        <button onclick="openChat('${user.username}')">Написать</button>
-      </div>
-    `).join("");
-
-  friendList.innerHTML = `
-    <div class="friendsSections">
-      <h3 class="friendsSubTitle">Мои друзья</h3>
-      <div class="friendsGrid">${friendsHTML}</div>
-    </div>
-  `;
+  let friendsHTML = friends.length === 0 ? "<p>Пока нет друзей. Друг появится, когда вы подпишетесь друг на друга.</p>" : friends.map(user => `<div class="friend"><img src="${user.icon || 'jw.jpeg'}"><h3>${user.name || 'Без имени'}</h3><p>${user.username || ''}</p><div class="mutualBadge">вы друзья</div><button onclick="openMyProfile(); openPublicProfile('${user.username}', 'profile')">Открыть профиль</button><button onclick="openChat('${user.username}')">Написать</button></div>`).join("");
+  friendList.innerHTML = `<div class="friendsSections"><h3 class="friendsSubTitle">Мои друзья</h3><div class="friendsGrid">${friendsHTML}</div></div>`;
 }
 
 function openChat(friendName){
@@ -2940,25 +2796,12 @@ function openChat(friendName){
   showMessages();
 }
 
-let messagesArray = JSON.parse(localStorage.getItem("messagesArray")) || [];
-
 function sendMessage(){
   let text = chatText.value;
   let myName = localStorage.getItem("username") || "Гость";
-
-  if(text === ""){
-    alert("Напиши сообщение");
-    return;
-  }
-
-  messagesArray.push({
-    from:myName,
-    to:currentChatFriend,
-    text:text
-  });
-
+  if(text === ""){ alert("Напиши сообщение"); return; }
+  messagesArray.push({ from:myName, to:currentChatFriend, text:text });
   localStorage.setItem("messagesArray",JSON.stringify(messagesArray));
-
   chatText.value="";
   showMessages();
 }
@@ -2966,1043 +2809,130 @@ function sendMessage(){
 function showMessages(){
   messages.innerHTML="";
   let myName = localStorage.getItem("username") || "Гость";
-
   messagesArray.forEach(msg=>{
     if(msg.to === currentChatFriend || msg.from === currentChatFriend){
       let side = msg.from === myName ? "me" : "other";
-
-      messages.innerHTML += `
-        <div class="message ${side}">
-          <div>${msg.text}</div>
-        </div>
-      `;
+      messages.innerHTML += `<div class="message ${side}"><div>${msg.text}</div></div>`;
     }
   });
-
   messages.scrollTop = messages.scrollHeight;
 }
 
-function showTab(id){
-  document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  if(id === "friends") showFriend();
+function openFriendsTabFromProfile(){ closeProfile(); showTab("friends"); }
+
+function renderProfileFriends(){
+  let box = document.getElementById("profileFriendsBox");
+  if(!box) return;
+  let myUsername = localStorage.getItem("username") || "";
+  let users = getUsers().filter(u => u.username !== myUsername && areFriendsLocal(myUsername, u.username));
+  if(users.length === 0){ box.innerHTML = "<p>Пока нет друзей.</p>"; return; }
+  box.innerHTML = users.map(user => `<div class="profileFriendItem"><div class="profileFriendMain"><img src="${user.icon || 'jw.jpeg'}"><div><b>${user.name || 'Без имени'}</b><br><span>${user.username || ''}</span></div></div><button class="friendProfileBtn" onclick="openPublicProfile('${user.username}', 'profile')">Открыть</button></div>`).join("");
 }
 
-const slides = [
-  "enhy1.jpeg",
-  "enhy2.jpeg",
-  "enhy3.jpeg",
-  "enhy4.jpeg",
-  "enhy5.jpeg",
-  "enhy6.jpeg",
-  "enhy7.jpeg"
-];
-
-let currentSlide = 0;
-
-function nextSlide(){
-  currentSlide++;
-  if(currentSlide >= slides.length) currentSlide = 0;
-  slide.src = slides[currentSlide];
+function toggleProfileFriends(){
+  let box = document.getElementById("profileFriendsBox");
+  if(!box) return;
+  if(box.style.display === "block"){ box.style.display = "none"; return; }
+  renderProfileFriends();
+  box.style.display = "block";
 }
 
-function prevSlide(){
-  currentSlide--;
-  if(currentSlide < 0) currentSlide = slides.length - 1;
-  slide.src = slides[currentSlide];
-}
-
-document.addEventListener("play",function(e){
-  if(e.target.tagName === "AUDIO"){
-    document.querySelectorAll("audio").forEach(audio=>{
-      if(audio !== e.target){
-        audio.pause();
-      }
-    });
-    updatePlayButtons();
-  }
-},true);
-
-document.addEventListener("pause",function(e){
-  if(e.target.tagName === "AUDIO"){
-    updatePlayButtons();
-  }
-},true);
-
-document.addEventListener("visibilitychange",()=>{
-  if(activeAudio && !activeAudio.paused){
-    activeAudio.play().catch(()=>{});
-  }
-});
-
-
-/* SUPABASE ACCOUNT FIX - added */
-function normalizeSupabaseUser(user){
-  if(!user) return null;
-  return {
-    name: user.name || "Без имени",
-    username: user.username || "",
-    password: user.password || "",
-    birthday: user.birthday || "ENHYPEN",
-    icon: user.icon || "jw.jpeg",
-    bias: user.bias || "",
-    biasWrecker: user.biasWrecker || "",
-    favSong: user.favSong || "",
-    description: user.description || "",
-    status: user.status || "chibijungwon.png",
-    lastSong: user.lastSong || ""
-  };
-}
-
-function makeSupabaseUserRow(user){
-  return {
-    username: user.username || "",
-    name: user.name || "",
-    password: user.password || "",
-    icon: user.icon || "jw.jpeg",
-    description: user.description || "",
-    bias: user.bias || "",
-    biasWrecker: user.biasWrecker || "",
-    favSong: user.favSong || ""
-  };
-}
-
-loadUsersFromSupabase = async function(){
-  try{
-    const { data, error } = await sb
-      .from("NIARI")
-      .select("*");
-
-    if(error){
-      console.error("Supabase SELECT error:", error);
-      alert("Supabase не отдаёт пользователей: " + error.message);
-      return getUsers();
-    }
-
-    let deleted = getDeletedUsers();
-    let users = (data || [])
-      .map(normalizeSupabaseUser)
-      .filter(user => user && user.username && !deleted.includes(user.username));
-
-    localStorage.setItem("users", JSON.stringify(users));
-    return users;
-  }catch(error){
-    console.error("Supabase SELECT catch:", error);
-    alert("Ошибка подключения к Supabase. Открой Console/F12 для деталей.");
-    return getUsers();
-  }
-};
-
-saveUserToSupabase = async function(user){
-  try{
-    if(!user || !user.username){
-      alert("Нет username, аккаунт не сохранён.");
-      return false;
-    }
-
-    const row = makeSupabaseUserRow(user);
-
-    const { data: existing, error: checkError } = await sb
-      .from("NIARI")
-      .select("id")
-      .eq("username", user.username)
-      .limit(1);
-
-    if(checkError){
-      console.error("Supabase CHECK error:", checkError);
-      alert("Supabase не проверяет аккаунт: " + checkError.message);
-      return false;
-    }
-
-    if(existing && existing.length > 0){
-      const { error: updateError } = await sb
-        .from("NIARI")
-        .update(row)
-        .eq("username", user.username);
-
-      if(updateError){
-        console.error("Supabase UPDATE error:", updateError);
-        alert("Supabase не обновляет аккаунт: " + updateError.message);
-        return false;
-      }
-    }else{
-      const { error: insertError } = await sb
-        .from("NIARI")
-        .insert([row]);
-
-      if(insertError){
-        console.error("Supabase INSERT error:", insertError);
-        alert("Supabase не сохраняет аккаунт: " + insertError.message);
-        return false;
-      }
-    }
-
-    await loadUsersFromSupabase();
-    return true;
-  }catch(error){
-    console.error("Supabase SAVE catch:", error);
-    alert("Ошибка сохранения в Supabase.");
-    return false;
-  }
-};
-
-registerProfile = async function(){
-  let usernameValue = username.value.trim();
-  let passwordValue = password.value.trim();
-  let users = await loadUsersFromSupabase();
-
-  if(displayName.value.trim() === ""){
-    alert("Введи имя");
-    return;
-  }
-
-  if(usernameValue === ""){
-    alert("Введи юзернейм");
-    return;
-  }
-
-  if(passwordValue === ""){
-    alert("Введи пароль");
-    return;
-  }
-
-  if(getDeletedUsers().includes(usernameValue)){
-    alert("Этот профиль удалён владельцем сайта.");
-    return;
-  }
-
-  if(users.some(u => u.username === usernameValue)){
-    alert("Такой юзернейм уже занят.");
-    return;
-  }
-
-  let newUser = {
-    name: displayName.value.trim(),
-    username: usernameValue,
-    password: passwordValue,
-    birthday: "ENHYPEN",
-    icon: chosenIcon,
-    bias: bias.value,
-    biasWrecker: biasWrecker.value,
-    favSong: favSong.value,
-    description: description.value,
-    status: chosenStatus,
-    lastSong: ""
-  };
-
-  let saved = await saveUserToSupabase(newUser);
-  if(!saved) return;
-
-  localStorage.setItem("registered","yes");
-  localStorage.setItem("name",newUser.name);
-  localStorage.setItem("username",newUser.username);
-  localStorage.setItem("oldUsername",newUser.username);
-  localStorage.setItem("password",newUser.password);
-  localStorage.setItem("birthday",newUser.birthday);
-  localStorage.setItem("icon",newUser.icon);
-  localStorage.setItem("bias",newUser.bias);
-  localStorage.setItem("biasWrecker",newUser.biasWrecker);
-  localStorage.setItem("favSong",newUser.favSong);
-  localStorage.setItem("description",newUser.description);
-  localStorage.setItem("status",newUser.status);
-  localStorage.setItem("lastSong",newUser.lastSong);
-
-  registerBlock.style.display = "none";
-  settingsBlock.style.display = "none";
-  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
-  profileBlock.style.display = "block";
-
-  showProfile();
-  await showFriend();
-  await renderOwnerDatabase();
-};
-
-loginProfile = async function(){
-  let usernameValue = loginEnter.value.trim();
-  let passwordValue = passwordEnter.value.trim();
-
-  const { data, error } = await sb
-    .from("NIARI")
-    .select("*")
-    .eq("username", usernameValue)
-    .eq("password", passwordValue)
-    .limit(1);
-
-  if(error){
-    console.error("Supabase LOGIN error:", error);
-    alert("Ошибка входа через Supabase: " + error.message);
-    return;
-  }
-
-  let user = data && data.length ? normalizeSupabaseUser(data[0]) : null;
-
-  if(!user){
-    alert("Неверный юзернейм или пароль");
-    return;
-  }
-
-  localStorage.setItem("registered","yes");
-  localStorage.setItem("name",user.name);
-  localStorage.setItem("username",user.username);
-  localStorage.setItem("oldUsername",user.username);
-  localStorage.setItem("password",user.password);
-  localStorage.setItem("birthday",user.birthday || "");
-  localStorage.setItem("icon",user.icon || "jw.jpeg");
-  localStorage.setItem("bias",user.bias || "");
-  localStorage.setItem("biasWrecker",user.biasWrecker || "");
-  localStorage.setItem("favSong",user.favSong || "");
-  localStorage.setItem("description",user.description || "");
-  localStorage.setItem("status",user.status || "chibijungwon.png");
-  localStorage.setItem("lastSong",user.lastSong || "");
-
-  chosenIcon = user.icon || "jw.jpeg";
-  chosenStatus = user.status || "chibijungwon.png";
-
+// ============= БАЗА ДАННЫХ ВЛАДЕЛЬЦА =============
+async function openOwnerDatabase(){
+  if(!isOwner()){ alert("База данных доступна только владельцу сайта."); return; }
   await loadUsersFromSupabase();
+  document.getElementById("profileBlock").style.display = "none";
+  document.getElementById("settingsBlock").style.display = "none";
+  document.getElementById("registerBlock").style.display = "none";
+  document.getElementById("ownerDatabasePage").style.display = "block";
+  await renderOwnerDatabase();
+}
 
-  registerBlock.style.display = "none";
-  settingsBlock.style.display = "none";
-  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
-  profileBlock.style.display = "block";
-
+function backFromOwnerDatabase(){
+  document.getElementById("ownerDatabasePage").style.display = "none";
+  document.getElementById("profileBlock").style.display = "block";
   showProfile();
-  await showFriend();
-};
+}
 
-renderOwnerDatabase = async function(){
+async function renderOwnerDatabase(){
   let page = document.getElementById("ownerDatabasePage");
   let list = document.getElementById("ownerUsersList");
   let ownerBtn = document.getElementById("ownerDbOpenBtn");
-
-  if(ownerBtn){
-    ownerBtn.style.display = isOwner() ? "block" : "none";
-  }
-
+  if(ownerBtn) ownerBtn.style.display = isOwner() ? "block" : "none";
   if(!list) return;
-
-  if(!isOwner()){
-    if(page) page.style.display = "none";
-    return;
-  }
-
-  const { data, error } = await sb
-    .from("NIARI")
-    .select("*");
-
-  if(error){
-    console.error("Supabase OWNER SELECT error:", error);
-    list.innerHTML = "<p>Supabase ошибка: " + error.message + "</p>";
-    return;
-  }
-
-  let users = (data || []).map(normalizeSupabaseUser).filter(u => u && u.username);
-  localStorage.setItem("users", JSON.stringify(users));
-
-  if(users.length === 0){
-    list.innerHTML = "<p>Пока нет аккаунтов.</p>";
-    return;
-  }
-
-  list.innerHTML = users.map(user => `
-    <div class="ownerDbCard">
-      <img src="${user.icon || 'jw.jpeg'}">
-      <div class="ownerDbInfo">
-        <b>${user.name || 'Без имени'}</b><br>
-        <span>${user.username || ''}</span><br>
-        <small>Биас: ${user.bias || 'не выбран'}<br>Любимая песня: ${user.favSong || 'не выбрана'}</small>
-      </div>
-      <div class="ownerDbActions">
-        <button class="ownerSmallBtn" onclick="openPublicProfile('${user.username}', 'database')">Профиль</button>
-        ${user.username === OWNER_USERNAME ? '<b>Владелец</b>' : `<button class="deleteBtn" onclick="deleteUser('${user.username}')">Удалить</button>`}
-      </div>
-    </div>
-  `).join("");
-};
-
-searchUser = async function(){
-  let q = searchUsername.value.trim();
+  if(!isOwner()){ if(page) page.style.display = "none"; return; }
   let users = await loadUsersFromSupabase();
-
-  searchResultsBox.style.display = "block";
-  searchResults.innerHTML = "";
-
-  let found = users.find(u => u.username === q);
-
-  if(!found){
-    searchResults.innerHTML = "<p>Пользователь не найден.</p>";
-    return;
-  }
-
-  searchResults.innerHTML = `
-    <div class="friend">
-      <img src="${found.icon || 'jw.jpeg'}">
-      <h3>${found.name || 'Без имени'}</h3>
-      <p>${found.username}</p>
-      <p>${found.description || ""}</p>
-      <button onclick="openMyProfile(); openPublicProfile('${found.username}', 'profile')">Открыть профиль</button>
-      <button onclick="toggleFollow('${found.username}')">${isFollowing(localStorage.getItem("username") || "", found.username) ? "Вы подписаны" : "Подписаться"}</button>
-      <button onclick="openChat('${found.username}')">Написать</button>
-      ${isOwner() && found.username !== OWNER_USERNAME ? `<button class="deleteBtn" onclick="deleteUser('${found.username}')">Удалить аккаунт</button>` : ""}
-    </div>
-  `;
-};
-/* END SUPABASE ACCOUNT FIX */
-
-
-
-/* SHARED SUPABASE TABLES FIX - posts, comments, likes, follows, messages, search clear */
-
-function getDbClient(){
-  if(typeof sb !== "undefined" && sb && typeof sb.from === "function"){
-    return sb;
-  }
-  return null;
+  if(users.length === 0){ list.innerHTML = "<p>Пока нет аккаунтов.</p>"; return; }
+  list.innerHTML = users.map(user => `<div class="ownerDbCard"><img src="${user.icon || 'jw.jpeg'}"><div class="ownerDbInfo"><b>${user.name || 'Без имени'}</b><br><span>${user.username || ''}</span><br><small>Биас: ${user.bias || 'не выбран'}<br>Последняя песня: ${user.lastSong || 'пока не слушал(а)'}</small></div><div class="ownerDbActions"><button class="ownerSmallBtn" onclick="openPublicProfile('${user.username}', 'database')">Профиль</button>${user.username === OWNER_USERNAME ? '<b>Владелец</b>' : `<button class="deleteBtn" onclick="deleteUser('${user.username}')">Удалить</button>`}</div></div>`).join("");
 }
 
-function safeId(){
-  return Date.now() + Math.floor(Math.random() * 1000000);
+async function deleteUser(username){
+  if(!isOwner()){ alert("Удалять аккаунты может только владелец сайта."); return; }
+  if(username === OWNER_USERNAME){ alert("Аккаунт владельца удалить нельзя."); return; }
+  let deletedList = getDeletedUsers();
+  deletedList.push(username);
+  saveDeletedUsers(deletedList);
+  let deletedUser = getUsers().find(user => user.username === username);
+  let users = getUsers().filter(user => user.username !== username);
+  localStorage.setItem("users", JSON.stringify(users));
+  await deleteUserFromSupabase(username);
+  postsArray = postsArray.filter(post => post.username !== username && (!deletedUser || post.author !== deletedUser.name));
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+  messagesArray = messagesArray.filter(msg => msg.from !== username && msg.to !== username);
+  localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
+  let follows = getFollowsLocal();
+  delete follows[username];
+  Object.keys(follows).forEach(user => { follows[user] = follows[user].filter(item => item !== username); });
+  setFollowsLocal(follows);
+  let currentUsername = localStorage.getItem("username");
+  if(currentUsername === username) logoutProfile();
+  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block" && publicUsername.innerText === username) backFromPublicProfile();
+  await renderOwnerDatabase();
+  await showFriend();
+  showPosts();
+  showProfilePosts();
+  await renderProfileFriends();
+  alert("Аккаунт удалён.");
+}
+
+// ============= ПОИСК =============
+async function searchUser(){
+  let q = searchUsername.value.trim();
+  let users = await loadUsersFromSupabase();
+  searchResultsBox.style.display = "block";
+  searchResults.innerHTML = "";
+  let found = users.find(u=>u.username === q);
+  if(!found){ searchResults.innerHTML = "<p>Пользователь не найден.</p>"; return; }
+  searchResults.innerHTML = `<div class="friend"><img src="${found.icon || 'jw.jpeg'}"><h3>${found.name || 'Без имени'}</h3><p>${found.username}</p><p>${found.description || ""}</p><p>Последняя песня: ${found.lastSong || "пока не слушал(а)"}</p><button onclick="openMyProfile(); openPublicProfile('${found.username}', 'profile')">Открыть профиль</button><button onclick="toggleFollow('${found.username}')">${isFollowingLocal(localStorage.getItem("username") || "", found.username) ? "Вы подписаны" : "Подписаться"}</button><button onclick="openChat('${found.username}')">Написать</button>${isOwner() && found.username !== OWNER_USERNAME ? `<button class="deleteBtn" onclick="deleteUser('${found.username}')">Удалить аккаунт</button>` : ""}</div>`;
 }
 
 function clearSearchResults(){
   const box = document.getElementById("searchResultsBox");
   if(box) box.style.display = "none";
-
   const results = document.getElementById("searchResults");
   if(results) results.innerHTML = "";
-
   const input = document.getElementById("searchUsername");
   if(input) input.value = "";
 }
 
-function getFollows(){
-  return JSON.parse(localStorage.getItem("follows") || "{}");
-}
-
-function setFollowsLocal(follows){
-  localStorage.setItem("follows", JSON.stringify(follows || {}));
-}
-
-async function loadFollowsFromSupabase(){
-  const db = getDbClient();
-  let follows = {};
-
-  if(!db){
-    return getFollows();
-  }
-
-  try{
-    const { data, error } = await db
-      .from("follows")
-      .select("*");
-
-    if(error){
-      console.warn("Follows load error:", error.message);
-      return getFollows();
-    }
-
-    (data || []).forEach(row=>{
-      if(!row.follower || !row.following) return;
-      if(!follows[row.follower]) follows[row.follower] = [];
-      if(!follows[row.follower].includes(row.following)){
-        follows[row.follower].push(row.following);
-      }
-    });
-
-    setFollowsLocal(follows);
-    return follows;
-  }catch(error){
-    console.warn("Follows load catch:", error);
-    return getFollows();
-  }
-}
-
-function isFollowing(fromUser, toUser){
-  let follows = getFollows();
-  return !!(follows[fromUser] && follows[fromUser].includes(toUser));
-}
-
-function areFriends(userA, userB){
-  return isFollowing(userA, userB) && isFollowing(userB, userA);
-}
-
-async function toggleFollow(username){
-  let myUsername = localStorage.getItem("username") || "";
-  const db = getDbClient();
-
-  if(!myUsername){
-    alert("Сначала войди в профиль.");
-    return;
-  }
-
-  if(myUsername === username) return;
-
-  let users = await loadUsersFromSupabase();
-  if(!users.some(u => u.username === username)){
-    alert("Профиль не найден.");
-    await showFriend();
-    return;
-  }
-
-  await loadFollowsFromSupabase();
-
-  if(isFollowing(myUsername, username)){
-    if(db){
-      await db
-        .from("follows")
-        .delete()
-        .eq("follower", myUsername)
-        .eq("following", username);
-    }
-
-    let follows = getFollows();
-    follows[myUsername] = (follows[myUsername] || []).filter(u => u !== username);
-    setFollowsLocal(follows);
-  }else{
-    if(db){
-      await db
-        .from("follows")
-        .insert([
-          {
-            id:safeId(),
-            follower:myUsername,
-            following:username
-          }
-        ]);
-    }
-
-    let follows = getFollows();
-    if(!follows[myUsername]) follows[myUsername] = [];
-    if(!follows[myUsername].includes(username)) follows[myUsername].push(username);
-    setFollowsLocal(follows);
-  }
-
-  await loadFollowsFromSupabase();
-  updateFollowButton(username);
-  await showFriend();
-  showProfile();
-}
-
-async function toggleFollowPublic(){
-  let username = document.getElementById("publicUsername").innerText;
-  await toggleFollow(username);
-}
-
-async function loadPostsFromSupabase(){
-  const db = getDbClient();
-
-  if(!db){
-    postsArray = JSON.parse(localStorage.getItem("postsArray") || "[]");
-    return postsArray;
-  }
-
-  try{
-    const [postsResult, commentsResult, likesResult] = await Promise.all([
-      db.from("posts").select("*").order("created_at", { ascending:false }),
-      db.from("comments").select("*").order("created_at", { ascending:true }),
-      db.from("likes").select("*")
-    ]);
-
-    if(postsResult.error){
-      console.warn("Posts load error:", postsResult.error.message);
-      return postsArray;
-    }
-
-    if(commentsResult.error){
-      console.warn("Comments load error:", commentsResult.error.message);
-    }
-
-    if(likesResult.error){
-      console.warn("Likes load error:", likesResult.error.message);
-    }
-
-    const users = await loadUsersFromSupabase();
-    const userByUsername = {};
-    users.forEach(u => userByUsername[u.username] = u);
-
-    const commentsByPost = {};
-    const commentObjectsById = {};
-
-    (commentsResult.data || []).forEach(row=>{
-      const user = userByUsername[row.username] || {};
-      const commentObj = {
-        id:row.id,
-        name:user.name || row.username || "Гость",
-        username:row.username || "",
-        icon:user.icon || "jw.jpeg",
-        text:row.text || "",
-        replies:[]
-      };
-
-      commentObjectsById[String(row.id)] = commentObj;
-
-      if(row.reply_to){
-        return;
-      }
-
-      if(!commentsByPost[String(row.post_id)]) commentsByPost[String(row.post_id)] = [];
-      commentsByPost[String(row.post_id)].push(commentObj);
-    });
-
-    (commentsResult.data || []).forEach(row=>{
-      if(!row.reply_to) return;
-
-      const user = userByUsername[row.username] || {};
-      const replyObj = {
-        id:row.id,
-        name:user.name || row.username || "Гость",
-        username:row.username || "",
-        icon:user.icon || "jw.jpeg",
-        text:row.text || ""
-      };
-
-      const parent = commentObjectsById[String(row.reply_to)];
-      if(parent){
-        if(!parent.replies) parent.replies = [];
-        parent.replies.push(replyObj);
-      }
-    });
-
-    const likedByPost = {};
-    (likesResult.data || []).forEach(row=>{
-      if(!likedByPost[String(row.post_id)]) likedByPost[String(row.post_id)] = [];
-      if(row.username && !likedByPost[String(row.post_id)].includes(row.username)){
-        likedByPost[String(row.post_id)].push(row.username);
-      }
-    });
-
-    postsArray = (postsResult.data || []).map(row=>{
-      const user = userByUsername[row.username] || {};
-      const likedBy = likedByPost[String(row.id)] || [];
-
-      return {
-        id:row.id,
-        author:user.name || row.username || "Гость",
-        username:row.username || "",
-        text:row.text || "",
-        photo:row.image || "",
-        likes:likedBy.length,
-        likedBy:likedBy,
-        comments:commentsByPost[String(row.id)] || []
-      };
-    });
-
-    localStorage.setItem("postsArray", JSON.stringify(postsArray));
-    return postsArray;
-  }catch(error){
-    console.warn("Posts load catch:", error);
-    return postsArray;
-  }
-}
-
-async function refreshPostsEverywhere(){
-  await loadPostsFromSupabase();
-
-  showPosts();
-  showProfilePosts();
-
-  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
-    let username = publicUsername.innerText;
-    if(username) renderPublicPosts(username);
-  }
-}
-
-async function savePost(author, text, photo){
-  const db = getDbClient();
-  const id = safeId();
-  const username = localStorage.getItem("username") || "";
-
-  const newPost = {
-    id:id,
-    author:author,
-    username:username,
-    text:text,
-    photo:photo,
-    likes:0,
-    likedBy:[],
-    comments:[]
-  };
-
-  postsArray.unshift(newPost);
+function cleanDeletedData(){
+  let users = getUsers();
+  let existing = users.map(u => u.username);
+  let existingSet = new Set(existing);
+  let deletedSet = new Set(getDeletedUsers());
+  let follows = getFollowsLocal();
+  Object.keys(follows).forEach(username => {
+    if(!existingSet.has(username)){ delete follows[username]; }
+    else{ follows[username] = (follows[username] || []).filter(u => existingSet.has(u) && u !== username); }
+  });
+  setFollowsLocal(follows);
+  postsArray = postsArray.filter(post => !post.username || (existingSet.has(post.username) && !deletedSet.has(post.username)));
   localStorage.setItem("postsArray", JSON.stringify(postsArray));
-
-  if(db){
-    const { error } = await db
-      .from("posts")
-      .insert([
-        {
-          id:id,
-          username:username,
-          text:text || "",
-          image:photo || ""
-        }
-      ]);
-
-    if(error){
-      console.warn("Post insert error:", error.message);
-      alert("Запись не сохранилась в Supabase: " + error.message);
-    }
-  }
-
-  if(document.getElementById("postName")) postName.value="";
-  if(document.getElementById("postText")) postText.value="";
-  if(document.getElementById("postPhoto")) postPhoto.value="";
-
-  await refreshPostsEverywhere();
-}
-
-async function deletePost(id){
-  const db = getDbClient();
-  let post = postsArray.find(p => String(p.id) === String(id));
-  let myName = localStorage.getItem("name") || "Гость";
-  let myUsername = localStorage.getItem("username") || "";
-
-  if(!post) return;
-
-  if(post.author !== myName && post.username !== myUsername && !isOwner()){
-    alert("Можно удалять только свои записи.");
-    return;
-  }
-
-  postsArray = postsArray.filter(p => String(p.id) !== String(id));
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
-
-  if(db){
-    await db.from("likes").delete().eq("post_id", id);
-    await db.from("comments").delete().eq("post_id", id);
-    await db.from("posts").delete().eq("id", id);
-  }
-
-  await refreshPostsEverywhere();
-}
-
-async function likePost(id){
-  const db = getDbClient();
-  let myUsername = localStorage.getItem("username") || "";
-
-  if(!myUsername){
-    alert("Сначала войди в профиль.");
-    return;
-  }
-
-  let post = postsArray.find(p => String(p.id) === String(id));
-  if(!post) return;
-
-  if(!post.likedBy) post.likedBy = [];
-
-  if(post.likedBy.includes(myUsername)){
-    post.likedBy = post.likedBy.filter(u => u !== myUsername);
-
-    if(db){
-      await db
-        .from("likes")
-        .delete()
-        .eq("post_id", id)
-        .eq("username", myUsername);
-    }
-  }else{
-    post.likedBy.push(myUsername);
-
-    if(db){
-      await db
-        .from("likes")
-        .insert([
-          {
-            id:safeId(),
-            post_id:id,
-            username:myUsername
-          }
-        ]);
-    }
-  }
-
-  post.likes = post.likedBy.length;
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
-  await refreshPostsEverywhere();
-}
-
-async function addComment(id){
-  const db = getDbClient();
-  let input = document.getElementById("comment-" + id);
-  let text = input ? input.value.trim() : "";
-  let usernameValue = localStorage.getItem("username") || "";
-
-  if(text === "") return;
-
-  if(!usernameValue){
-    alert("Сначала войди в профиль.");
-    return;
-  }
-
-  let post = postsArray.find(p => String(p.id) === String(id));
-  if(!post) return;
-  if(!post.comments) post.comments = [];
-
-  const users = await loadUsersFromSupabase();
-  const user = users.find(u => u.username === usernameValue) || {};
-
-  const newComment = {
-    id:safeId(),
-    name:user.name || localStorage.getItem("name") || "Гость",
-    username:usernameValue,
-    icon:user.icon || localStorage.getItem("icon") || "jw.jpeg",
-    text:text,
-    replies:[]
-  };
-
-  post.comments.push(newComment);
-  input.value = "";
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
-
-  if(db){
-    const { error } = await db
-      .from("comments")
-      .insert([
-        {
-          id:newComment.id,
-          post_id:id,
-          username:usernameValue,
-          text:text,
-          reply_to:null
-        }
-      ]);
-
-    if(error){
-      console.warn("Comment insert error:", error.message);
-      alert("Комментарий не сохранился в Supabase: " + error.message);
-    }
-  }
-
-  await refreshPostsEverywhere();
-}
-
-async function addReply(postId, commentIndex){
-  const db = getDbClient();
-  let input = document.getElementById("reply-" + postId + "-" + commentIndex);
-  let text = input ? input.value.trim() : "";
-  let usernameValue = localStorage.getItem("username") || "";
-
-  if(text === "") return;
-
-  if(!usernameValue){
-    alert("Сначала войди в профиль.");
-    return;
-  }
-
-  let post = postsArray.find(p => String(p.id) === String(postId));
-  if(!post || !post.comments || !post.comments[commentIndex]) return;
-
-  if(!post.comments[commentIndex].replies) post.comments[commentIndex].replies = [];
-
-  const users = await loadUsersFromSupabase();
-  const user = users.find(u => u.username === usernameValue) || {};
-  const parentComment = post.comments[commentIndex];
-
-  const newReply = {
-    id:safeId(),
-    name:user.name || localStorage.getItem("name") || "Гость",
-    username:usernameValue,
-    icon:user.icon || localStorage.getItem("icon") || "jw.jpeg",
-    text:text
-  };
-
-  post.comments[commentIndex].replies.push(newReply);
-  input.value = "";
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
-
-  if(db){
-    const { error } = await db
-      .from("comments")
-      .insert([
-        {
-          id:newReply.id,
-          post_id:postId,
-          username:usernameValue,
-          text:text,
-          reply_to:parentComment.id || null
-        }
-      ]);
-
-    if(error){
-      console.warn("Reply insert error:", error.message);
-      alert("Ответ не сохранился в Supabase: " + error.message);
-    }
-  }
-
-  await refreshPostsEverywhere();
-}
-
-async function loadMessagesFromSupabase(){
-  const db = getDbClient();
-
-  if(!db){
-    messagesArray = JSON.parse(localStorage.getItem("messagesArray") || "[]");
-    return messagesArray;
-  }
-
-  try{
-    const { data, error } = await db
-      .from("messages")
-      .select("*")
-      .order("created_at", { ascending:true });
-
-    if(error){
-      console.warn("Messages load error:", error.message);
-      return messagesArray;
-    }
-
-    messagesArray = (data || []).map(row => ({
-      id:row.id,
-      from:row.from_user,
-      to:row.to_user,
-      text:row.text || ""
-    }));
-
-    localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
-    return messagesArray;
-  }catch(error){
-    console.warn("Messages load catch:", error);
-    return messagesArray;
-  }
-}
-
-async function showFriend(){
-  await loadFollowsFromSupabase();
-
-  let myUsername = localStorage.getItem("username") || "";
-  let users = await loadUsersFromSupabase();
-  let friends = users.filter(u => u.username !== myUsername && areFriends(myUsername, u.username));
-
-  profileIcon.src = localStorage.getItem("icon") || "jw.jpeg";
-
-  if(!myUsername){
-    friendList.innerHTML = "Сначала войди в профиль, чтобы видеть друзей.";
-    return;
-  }
-
-  let friendsHTML = friends.length === 0
-    ? "<p>Пока нет друзей. Друг появится, когда вы подпишетесь друг на друга.</p>"
-    : friends.map(user => `
-      <div class="friend">
-        <img src="${user.icon || 'jw.jpeg'}">
-        <h3>${user.name || 'Без имени'}</h3>
-        <p>${user.username || ''}</p>
-        <div class="mutualBadge">вы друзья</div>
-        <button onclick="clearSearchResults(); openMyProfile(); openPublicProfile('${user.username}', 'profile')">Открыть профиль</button>
-        <button onclick="openChat('${user.username}')">Написать</button>
-      </div>
-    `).join("");
-
-  friendList.innerHTML = `
-    <div class="friendsSections">
-      <h3 class="friendsSubTitle">Мои друзья</h3>
-      <div class="friendsGrid">${friendsHTML}</div>
-    </div>
-  `;
-}
-
-async function openChat(friendName){
-  currentChatFriend = friendName;
-  clearSearchResults();
-  showTab("friends");
-  chatBox.style.display = "block";
-  chatTitle.innerText = "Чат с " + friendName;
-  await loadMessagesFromSupabase();
-  showMessages();
-}
-
-async function sendMessage(){
-  let text = chatText.value.trim();
-  let myName = localStorage.getItem("username") || "";
-  const db = getDbClient();
-
-  if(text === ""){
-    alert("Напиши сообщение");
-    return;
-  }
-
-  if(!myName){
-    alert("Сначала войди в профиль.");
-    return;
-  }
-
-  const newMessage = {
-    id:safeId(),
-    from:myName,
-    to:currentChatFriend,
-    text:text
-  };
-
-  messagesArray.push(newMessage);
+  messagesArray = messagesArray.filter(msg => existingSet.has(msg.from) && existingSet.has(msg.to) && !deletedSet.has(msg.from) && !deletedSet.has(msg.to));
   localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
-
-  if(db){
-    const { error } = await db
-      .from("messages")
-      .insert([
-        {
-          id:newMessage.id,
-          from_user:myName,
-          to_user:currentChatFriend,
-          text:text
-        }
-      ]);
-
-    if(error){
-      console.warn("Message insert error:", error.message);
-      alert("Сообщение не сохранилось в Supabase: " + error.message);
-    }
-  }
-
-  chatText.value="";
-  await loadMessagesFromSupabase();
-  showMessages();
 }
 
-function showMessages(){
-  messages.innerHTML="";
-  let myName = localStorage.getItem("username") || "Гость";
-
-  messagesArray.forEach(msg=>{
-    let isThisChat =
-      (msg.from === myName && msg.to === currentChatFriend) ||
-      (msg.from === currentChatFriend && msg.to === myName);
-
-    if(isThisChat){
-      let side = msg.from === myName ? "me" : "other";
-      messages.innerHTML += `
-        <div class="message ${side}">
-          <div>${escapeText(msg.text)}</div>
-        </div>
-      `;
-    }
-  });
-
-  messages.scrollTop = messages.scrollHeight;
-}
-
-function renderPublicPosts(userOrUsername){
-  let box = document.getElementById("publicPosts");
-  if(!box) return;
-
-  let username = typeof userOrUsername === "string" ? userOrUsername : (userOrUsername.username || "");
-  let name = typeof userOrUsername === "string" ? "" : (userOrUsername.name || "");
-
-  box.innerHTML = "";
-
-  let userPosts = postsArray.filter(post =>
-    post.username === username || (name && post.author === name)
-  );
-
-  if(userPosts.length === 0){
-    box.innerHTML = "<p>Пока нет записей.</p>";
-    return;
-  }
-
-  userPosts.forEach(post=>{
-    box.innerHTML += createPostHTML(post);
-  });
-}
-
+// ============= НАВИГАЦИЯ =============
 function showTab(id){
   clearSearchResults();
   document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("active"));
@@ -4010,41 +2940,21 @@ function showTab(id){
   if(id === "friends") showFriend();
 }
 
-async function searchUser(){
-  let q = searchUsername.value.trim();
-  let users = await loadUsersFromSupabase();
-  await loadFollowsFromSupabase();
+function nextSlide(){ currentSlide++; if(currentSlide >= slides.length) currentSlide = 0; slide.src = slides[currentSlide]; }
+function prevSlide(){ currentSlide--; if(currentSlide < 0) currentSlide = slides.length - 1; slide.src = slides[currentSlide]; }
 
-  searchResultsBox.style.display = "block";
-  searchResults.innerHTML = "";
-
-  let found = users.find(u => u.username === q);
-
-  if(!found){
-    searchResults.innerHTML = "<p>Пользователь не найден.</p>";
-    return;
+// ============= СОБЫТИЯ АУДИО =============
+document.addEventListener("play",function(e){
+  if(e.target.tagName === "AUDIO"){
+    document.querySelectorAll("audio").forEach(audio=>{ if(audio !== e.target) audio.pause(); });
+    updatePlayButtons();
   }
+},true);
+document.addEventListener("pause",function(e){ if(e.target.tagName === "AUDIO") updatePlayButtons(); },true);
+document.addEventListener("visibilitychange",()=>{ if(activeAudio && !activeAudio.paused) activeAudio.play().catch(()=>{}); });
+document.addEventListener("DOMContentLoaded", ()=>{ const profileButton = document.querySelector(".profile"); if(profileButton) profileButton.addEventListener("click", clearSearchResults, true); });
 
-  searchResults.innerHTML = `
-    <div class="friend">
-      <img src="${found.icon || 'jw.jpeg'}">
-      <h3>${found.name || 'Без имени'}</h3>
-      <p>${found.username}</p>
-      <p>${found.description || ""}</p>
-      <button onclick="clearSearchResults(); openMyProfile(); openPublicProfile('${found.username}', 'profile')">Открыть профиль</button>
-      <button onclick="toggleFollow('${found.username}')">${isFollowing(localStorage.getItem("username") || "", found.username) ? "Вы подписаны" : "Подписаться"}</button>
-      <button onclick="openChat('${found.username}')">Написать</button>
-      ${isOwner() && found.username !== OWNER_USERNAME ? `<button class="deleteBtn" onclick="deleteUser('${found.username}')">Удалить аккаунт</button>` : ""}
-    </div>
-  `;
-}
-
-document.addEventListener("DOMContentLoaded", ()=>{
-  const profileButton = document.querySelector(".profile");
-  if(profileButton) profileButton.addEventListener("click", clearSearchResults, true);
-});
-/* END SHARED SUPABASE TABLES FIX */
-
+// ============= ИНИЦИАЛИЗАЦИЯ =============
 fillSelects();
 renderStatusSelects();
 renderSongs();
@@ -4054,8 +2964,6 @@ cleanDeletedData();
 (async()=>{
   await loadUsersFromSupabase();
   await loadFollowsFromSupabase();
-  await loadPostsFromSupabase();
-  await loadMessagesFromSupabase();
   await showFriend();
   showPosts();
   showMessages();
@@ -4065,3 +2973,6 @@ cleanDeletedData();
   chooseStatus(chosenStatus);
 })();
 </script>
+
+</body>
+</html>
