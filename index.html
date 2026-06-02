@@ -3692,14 +3692,56 @@ searchUser = async function(){
 
 
 
-/* SHARED SUPABASE TABLES FIX - posts, comments, likes, follows, messages, search clear */
+/* SHARED SUPABASE DATA FIX - follows, posts, likes, comments, replies, messages, search clear */
+const SUPABASE_STATE_TABLE = "NIARI_STATE";
 
-function getDbClient(){
-  return window.supabase && typeof supabase !== "undefined" ? supabase : null;
+async function loadStateValue(key, fallback){
+  if(!window.supabase || !window.sb && typeof sb === "undefined") return fallback;
+  try{
+    const { data, error } = await sb
+      .from(SUPABASE_STATE_TABLE)
+      .select("value")
+      .eq("key", key)
+      .maybeSingle();
+
+    if(error){
+      console.warn("Supabase state load error:", key, error.message);
+      return fallback;
+    }
+
+    return data && data.value !== null && data.value !== undefined ? data.value : fallback;
+  }catch(error){
+    console.warn("Supabase state load catch:", key, error);
+    return fallback;
+  }
 }
 
-function safeId(){
-  return Date.now() + Math.floor(Math.random() * 1000000);
+async function saveStateValue(key, value){
+  if(!window.supabase || !window.sb && typeof sb === "undefined") return;
+  try{
+    const { error } = await sb
+      .from(SUPABASE_STATE_TABLE)
+      .upsert([{ key:key, value:value }], { onConflict:"key" });
+
+    if(error) console.warn("Supabase state save error:", key, error.message);
+  }catch(error){
+    console.warn("Supabase state save catch:", key, error);
+  }
+}
+
+async function loadSharedDataFromSupabase(){
+  const loadedFollows = await loadStateValue("follows", JSON.parse(localStorage.getItem("follows") || "{}"));
+  const loadedPosts = await loadStateValue("postsArray", JSON.parse(localStorage.getItem("postsArray") || "[]"));
+  const loadedMessages = await loadStateValue("messagesArray", JSON.parse(localStorage.getItem("messagesArray") || "[]"));
+  const loadedDeleted = await loadStateValue("deletedUsers", JSON.parse(localStorage.getItem("deletedUsers") || "[]"));
+
+  localStorage.setItem("follows", JSON.stringify(loadedFollows || {}));
+  localStorage.setItem("postsArray", JSON.stringify(Array.isArray(loadedPosts) ? loadedPosts : []));
+  localStorage.setItem("messagesArray", JSON.stringify(Array.isArray(loadedMessages) ? loadedMessages : []));
+  localStorage.setItem("deletedUsers", JSON.stringify(Array.isArray(loadedDeleted) ? loadedDeleted : []));
+
+  if(typeof postsArray !== "undefined") postsArray = Array.isArray(loadedPosts) ? loadedPosts : [];
+  if(typeof messagesArray !== "undefined") messagesArray = Array.isArray(loadedMessages) ? loadedMessages : [];
 }
 
 function clearSearchResults(){
@@ -3713,60 +3755,26 @@ function clearSearchResults(){
   if(input) input.value = "";
 }
 
-function getFollows(){
+getFollows = function(){
   return JSON.parse(localStorage.getItem("follows") || "{}");
-}
+};
 
-function setFollowsLocal(follows){
+saveFollows = function(follows){
   localStorage.setItem("follows", JSON.stringify(follows || {}));
-}
+  saveStateValue("follows", follows || {});
+};
 
-async function loadFollowsFromSupabase(){
-  const db = getDbClient();
-  let follows = {};
-
-  if(!db){
-    return getFollows();
-  }
-
-  try{
-    const { data, error } = await db
-      .from("follows")
-      .select("*");
-
-    if(error){
-      console.warn("Follows load error:", error.message);
-      return getFollows();
-    }
-
-    (data || []).forEach(row=>{
-      if(!row.follower || !row.following) return;
-      if(!follows[row.follower]) follows[row.follower] = [];
-      if(!follows[row.follower].includes(row.following)){
-        follows[row.follower].push(row.following);
-      }
-    });
-
-    setFollowsLocal(follows);
-    return follows;
-  }catch(error){
-    console.warn("Follows load catch:", error);
-    return getFollows();
-  }
-}
-
-function isFollowing(fromUser, toUser){
+isFollowing = function(fromUser, toUser){
   let follows = getFollows();
   return !!(follows[fromUser] && follows[fromUser].includes(toUser));
-}
+};
 
-function areFriends(userA, userB){
+areFriends = function(userA, userB){
   return isFollowing(userA, userB) && isFollowing(userB, userA);
-}
+};
 
-async function toggleFollow(username){
+toggleFollow = async function(username){
   let myUsername = localStorage.getItem("username") || "";
-  const db = getDbClient();
 
   if(!myUsername){
     alert("Сначала войди в профиль.");
@@ -3782,159 +3790,29 @@ async function toggleFollow(username){
     return;
   }
 
-  await loadFollowsFromSupabase();
+  let follows = getFollows();
+  if(!follows[myUsername]) follows[myUsername] = [];
 
-  if(isFollowing(myUsername, username)){
-    if(db){
-      await db
-        .from("follows")
-        .delete()
-        .eq("follower", myUsername)
-        .eq("following", username);
-    }
-
-    let follows = getFollows();
-    follows[myUsername] = (follows[myUsername] || []).filter(u => u !== username);
-    setFollowsLocal(follows);
+  if(follows[myUsername].includes(username)){
+    follows[myUsername] = follows[myUsername].filter(u => u !== username);
   }else{
-    if(db){
-      await db
-        .from("follows")
-        .insert([
-          {
-            id:safeId(),
-            follower:myUsername,
-            following:username
-          }
-        ]);
-    }
-
-    let follows = getFollows();
-    if(!follows[myUsername]) follows[myUsername] = [];
-    if(!follows[myUsername].includes(username)) follows[myUsername].push(username);
-    setFollowsLocal(follows);
+    follows[myUsername].push(username);
   }
 
-  await loadFollowsFromSupabase();
+  saveFollows(follows);
   updateFollowButton(username);
   await showFriend();
   showProfile();
-}
+};
 
-async function toggleFollowPublic(){
+toggleFollowPublic = async function(){
   let username = document.getElementById("publicUsername").innerText;
   await toggleFollow(username);
-}
+};
 
-async function loadPostsFromSupabase(){
-  const db = getDbClient();
-
-  if(!db){
-    postsArray = JSON.parse(localStorage.getItem("postsArray") || "[]");
-    return postsArray;
-  }
-
-  try{
-    const [postsResult, commentsResult, likesResult] = await Promise.all([
-      db.from("posts").select("*").order("created_at", { ascending:false }),
-      db.from("comments").select("*").order("created_at", { ascending:true }),
-      db.from("likes").select("*")
-    ]);
-
-    if(postsResult.error){
-      console.warn("Posts load error:", postsResult.error.message);
-      return postsArray;
-    }
-
-    if(commentsResult.error){
-      console.warn("Comments load error:", commentsResult.error.message);
-    }
-
-    if(likesResult.error){
-      console.warn("Likes load error:", likesResult.error.message);
-    }
-
-    const users = await loadUsersFromSupabase();
-    const userByUsername = {};
-    users.forEach(u => userByUsername[u.username] = u);
-
-    const commentsByPost = {};
-    const commentObjectsById = {};
-
-    (commentsResult.data || []).forEach(row=>{
-      const user = userByUsername[row.username] || {};
-      const commentObj = {
-        id:row.id,
-        name:user.name || row.username || "Гость",
-        username:row.username || "",
-        icon:user.icon || "jw.jpeg",
-        text:row.text || "",
-        replies:[]
-      };
-
-      commentObjectsById[String(row.id)] = commentObj;
-
-      if(row.reply_to){
-        return;
-      }
-
-      if(!commentsByPost[String(row.post_id)]) commentsByPost[String(row.post_id)] = [];
-      commentsByPost[String(row.post_id)].push(commentObj);
-    });
-
-    (commentsResult.data || []).forEach(row=>{
-      if(!row.reply_to) return;
-
-      const user = userByUsername[row.username] || {};
-      const replyObj = {
-        id:row.id,
-        name:user.name || row.username || "Гость",
-        username:row.username || "",
-        icon:user.icon || "jw.jpeg",
-        text:row.text || ""
-      };
-
-      const parent = commentObjectsById[String(row.reply_to)];
-      if(parent){
-        if(!parent.replies) parent.replies = [];
-        parent.replies.push(replyObj);
-      }
-    });
-
-    const likedByPost = {};
-    (likesResult.data || []).forEach(row=>{
-      if(!likedByPost[String(row.post_id)]) likedByPost[String(row.post_id)] = [];
-      if(row.username && !likedByPost[String(row.post_id)].includes(row.username)){
-        likedByPost[String(row.post_id)].push(row.username);
-      }
-    });
-
-    postsArray = (postsResult.data || []).map(row=>{
-      const user = userByUsername[row.username] || {};
-      const likedBy = likedByPost[String(row.id)] || [];
-
-      return {
-        id:row.id,
-        author:user.name || row.username || "Гость",
-        username:row.username || "",
-        text:row.text || "",
-        photo:row.image || "",
-        likes:likedBy.length,
-        likedBy:likedBy,
-        comments:commentsByPost[String(row.id)] || []
-      };
-    });
-
-    localStorage.setItem("postsArray", JSON.stringify(postsArray));
-    return postsArray;
-  }catch(error){
-    console.warn("Posts load catch:", error);
-    return postsArray;
-  }
-}
-
-async function refreshPostsEverywhere(){
-  await loadPostsFromSupabase();
+refreshPostsEverywhere = function(){
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+  saveStateValue("postsArray", postsArray);
 
   showPosts();
   showProfilePosts();
@@ -3943,54 +3821,28 @@ async function refreshPostsEverywhere(){
     let username = publicUsername.innerText;
     if(username) renderPublicPosts(username);
   }
-}
+};
 
-async function savePost(author, text, photo){
-  const db = getDbClient();
-  const id = safeId();
-  const username = localStorage.getItem("username") || "";
-
-  const newPost = {
-    id:id,
+savePost = function(author, text, photo){
+  postsArray.push({
+    id:Date.now(),
     author:author,
-    username:username,
+    username:localStorage.getItem("username") || "",
     text:text,
     photo:photo,
     likes:0,
     likedBy:[],
     comments:[]
-  };
-
-  postsArray.unshift(newPost);
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
-
-  if(db){
-    const { error } = await db
-      .from("posts")
-      .insert([
-        {
-          id:id,
-          username:username,
-          text:text || "",
-          image:photo || ""
-        }
-      ]);
-
-    if(error){
-      console.warn("Post insert error:", error.message);
-      alert("Запись не сохранилась в Supabase: " + error.message);
-    }
-  }
+  });
 
   if(document.getElementById("postName")) postName.value="";
   if(document.getElementById("postText")) postText.value="";
   if(document.getElementById("postPhoto")) postPhoto.value="";
 
-  await refreshPostsEverywhere();
-}
+  refreshPostsEverywhere();
+};
 
-async function deletePost(id){
-  const db = getDbClient();
+deletePost = function(id){
   let post = postsArray.find(p => String(p.id) === String(id));
   let myName = localStorage.getItem("name") || "Гость";
   let myUsername = localStorage.getItem("username") || "";
@@ -4003,210 +3855,77 @@ async function deletePost(id){
   }
 
   postsArray = postsArray.filter(p => String(p.id) !== String(id));
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+  refreshPostsEverywhere();
+};
 
-  if(db){
-    await db.from("likes").delete().eq("post_id", id);
-    await db.from("comments").delete().eq("post_id", id);
-    await db.from("posts").delete().eq("id", id);
-  }
-
-  await refreshPostsEverywhere();
-}
-
-async function likePost(id){
-  const db = getDbClient();
-  let myUsername = localStorage.getItem("username") || "";
-
-  if(!myUsername){
-    alert("Сначала войди в профиль.");
-    return;
-  }
-
+likePost = function(id){
   let post = postsArray.find(p => String(p.id) === String(id));
   if(!post) return;
 
+  let myUsername = localStorage.getItem("username") || "guest";
   if(!post.likedBy) post.likedBy = [];
 
   if(post.likedBy.includes(myUsername)){
     post.likedBy = post.likedBy.filter(u => u !== myUsername);
-
-    if(db){
-      await db
-        .from("likes")
-        .delete()
-        .eq("post_id", id)
-        .eq("username", myUsername);
-    }
   }else{
     post.likedBy.push(myUsername);
-
-    if(db){
-      await db
-        .from("likes")
-        .insert([
-          {
-            id:safeId(),
-            post_id:id,
-            username:myUsername
-          }
-        ]);
-    }
   }
 
   post.likes = post.likedBy.length;
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
-  await refreshPostsEverywhere();
-}
+  refreshPostsEverywhere();
+};
 
-async function addComment(id){
-  const db = getDbClient();
+addComment = function(id){
   let input = document.getElementById("comment-" + id);
   let text = input ? input.value.trim() : "";
+  let nameValue = localStorage.getItem("name") || "Гость";
   let usernameValue = localStorage.getItem("username") || "";
+  let iconValue = localStorage.getItem("icon") || "jw.jpeg";
 
   if(text === "") return;
-
-  if(!usernameValue){
-    alert("Сначала войди в профиль.");
-    return;
-  }
 
   let post = postsArray.find(p => String(p.id) === String(id));
   if(!post) return;
   if(!post.comments) post.comments = [];
 
-  const users = await loadUsersFromSupabase();
-  const user = users.find(u => u.username === usernameValue) || {};
-
-  const newComment = {
-    id:safeId(),
-    name:user.name || localStorage.getItem("name") || "Гость",
+  post.comments.push({
+    name:nameValue,
     username:usernameValue,
-    icon:user.icon || localStorage.getItem("icon") || "jw.jpeg",
+    icon:iconValue,
     text:text,
     replies:[]
-  };
+  });
 
-  post.comments.push(newComment);
   input.value = "";
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+  refreshPostsEverywhere();
+};
 
-  if(db){
-    const { error } = await db
-      .from("comments")
-      .insert([
-        {
-          id:newComment.id,
-          post_id:id,
-          username:usernameValue,
-          text:text,
-          reply_to:null
-        }
-      ]);
-
-    if(error){
-      console.warn("Comment insert error:", error.message);
-      alert("Комментарий не сохранился в Supabase: " + error.message);
-    }
-  }
-
-  await refreshPostsEverywhere();
-}
-
-async function addReply(postId, commentIndex){
-  const db = getDbClient();
+addReply = function(postId, commentIndex){
   let input = document.getElementById("reply-" + postId + "-" + commentIndex);
   let text = input ? input.value.trim() : "";
+  let nameValue = localStorage.getItem("name") || "Гость";
   let usernameValue = localStorage.getItem("username") || "";
+  let iconValue = localStorage.getItem("icon") || "jw.jpeg";
 
   if(text === "") return;
-
-  if(!usernameValue){
-    alert("Сначала войди в профиль.");
-    return;
-  }
 
   let post = postsArray.find(p => String(p.id) === String(postId));
   if(!post || !post.comments || !post.comments[commentIndex]) return;
 
   if(!post.comments[commentIndex].replies) post.comments[commentIndex].replies = [];
 
-  const users = await loadUsersFromSupabase();
-  const user = users.find(u => u.username === usernameValue) || {};
-  const parentComment = post.comments[commentIndex];
-
-  const newReply = {
-    id:safeId(),
-    name:user.name || localStorage.getItem("name") || "Гость",
+  post.comments[commentIndex].replies.push({
+    name:nameValue,
     username:usernameValue,
-    icon:user.icon || localStorage.getItem("icon") || "jw.jpeg",
+    icon:iconValue,
     text:text
-  };
+  });
 
-  post.comments[commentIndex].replies.push(newReply);
   input.value = "";
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+  refreshPostsEverywhere();
+};
 
-  if(db){
-    const { error } = await db
-      .from("comments")
-      .insert([
-        {
-          id:newReply.id,
-          post_id:postId,
-          username:usernameValue,
-          text:text,
-          reply_to:parentComment.id || null
-        }
-      ]);
-
-    if(error){
-      console.warn("Reply insert error:", error.message);
-      alert("Ответ не сохранился в Supabase: " + error.message);
-    }
-  }
-
-  await refreshPostsEverywhere();
-}
-
-async function loadMessagesFromSupabase(){
-  const db = getDbClient();
-
-  if(!db){
-    messagesArray = JSON.parse(localStorage.getItem("messagesArray") || "[]");
-    return messagesArray;
-  }
-
-  try{
-    const { data, error } = await db
-      .from("messages")
-      .select("*")
-      .order("created_at", { ascending:true });
-
-    if(error){
-      console.warn("Messages load error:", error.message);
-      return messagesArray;
-    }
-
-    messagesArray = (data || []).map(row => ({
-      id:row.id,
-      from:row.from_user,
-      to:row.to_user,
-      text:row.text || ""
-    }));
-
-    localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
-    return messagesArray;
-  }catch(error){
-    console.warn("Messages load catch:", error);
-    return messagesArray;
-  }
-}
-
-async function showFriend(){
-  await loadFollowsFromSupabase();
-
+showFriend = async function(){
   let myUsername = localStorage.getItem("username") || "";
   let users = await loadUsersFromSupabase();
   let friends = users.filter(u => u.username !== myUsername && areFriends(myUsername, u.username));
@@ -4237,67 +3956,41 @@ async function showFriend(){
       <div class="friendsGrid">${friendsHTML}</div>
     </div>
   `;
-}
+};
 
-async function openChat(friendName){
+openChat = function(friendName){
   currentChatFriend = friendName;
   clearSearchResults();
   showTab("friends");
   chatBox.style.display = "block";
   chatTitle.innerText = "Чат с " + friendName;
-  await loadMessagesFromSupabase();
   showMessages();
-}
+};
 
-async function sendMessage(){
+sendMessage = function(){
   let text = chatText.value.trim();
-  let myName = localStorage.getItem("username") || "";
-  const db = getDbClient();
+  let myName = localStorage.getItem("username") || "Гость";
 
   if(text === ""){
     alert("Напиши сообщение");
     return;
   }
 
-  if(!myName){
-    alert("Сначала войди в профиль.");
-    return;
-  }
-
-  const newMessage = {
-    id:safeId(),
+  messagesArray.push({
+    id:Date.now(),
     from:myName,
     to:currentChatFriend,
     text:text
-  };
+  });
 
-  messagesArray.push(newMessage);
   localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
-
-  if(db){
-    const { error } = await db
-      .from("messages")
-      .insert([
-        {
-          id:newMessage.id,
-          from_user:myName,
-          to_user:currentChatFriend,
-          text:text
-        }
-      ]);
-
-    if(error){
-      console.warn("Message insert error:", error.message);
-      alert("Сообщение не сохранилось в Supabase: " + error.message);
-    }
-  }
+  saveStateValue("messagesArray", messagesArray);
 
   chatText.value="";
-  await loadMessagesFromSupabase();
   showMessages();
-}
+};
 
-function showMessages(){
+showMessages = function(){
   messages.innerHTML="";
   let myName = localStorage.getItem("username") || "Гость";
 
@@ -4317,9 +4010,9 @@ function showMessages(){
   });
 
   messages.scrollTop = messages.scrollHeight;
-}
+};
 
-function renderPublicPosts(userOrUsername){
+renderPublicPosts = function(userOrUsername){
   let box = document.getElementById("publicPosts");
   if(!box) return;
 
@@ -4340,19 +4033,18 @@ function renderPublicPosts(userOrUsername){
   userPosts.forEach(post=>{
     box.innerHTML += createPostHTML(post);
   });
-}
+};
 
-function showTab(id){
+showTab = function(id){
   clearSearchResults();
   document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("active"));
   document.getElementById(id).classList.add("active");
   if(id === "friends") showFriend();
-}
+};
 
-async function searchUser(){
+searchUser = async function(){
   let q = searchUsername.value.trim();
   let users = await loadUsersFromSupabase();
-  await loadFollowsFromSupabase();
 
   searchResultsBox.style.display = "block";
   searchResults.innerHTML = "";
@@ -4376,13 +4068,13 @@ async function searchUser(){
       ${isOwner() && found.username !== OWNER_USERNAME ? `<button class="deleteBtn" onclick="deleteUser('${found.username}')">Удалить аккаунт</button>` : ""}
     </div>
   `;
-}
+};
 
 document.addEventListener("DOMContentLoaded", ()=>{
   const profileButton = document.querySelector(".profile");
   if(profileButton) profileButton.addEventListener("click", clearSearchResults, true);
 });
-/* END SHARED SUPABASE TABLES FIX */
+/* END SHARED SUPABASE DATA FIX */
 
 fillSelects();
 renderStatusSelects();
@@ -4391,10 +4083,8 @@ renderAlbums();
 cleanDeletedData();
 
 (async()=>{
+  await loadSharedDataFromSupabase();
   await loadUsersFromSupabase();
-  await loadFollowsFromSupabase();
-  await loadPostsFromSupabase();
-  await loadMessagesFromSupabase();
   await showFriend();
   showPosts();
   showMessages();
