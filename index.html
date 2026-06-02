@@ -1448,7 +1448,7 @@ h1,h2{
 const supabaseUrl = "https://gdmqanrkgxarxwdlxvtz.supabase.co";
 const supabaseKey = "sb_publishable_4Rll7JueMTvJhJvY7UPNZA_Dy6i2j9b";
 
-const sb = window.supabase.createClient(
+const supabase = window.supabase.createClient(
   supabaseUrl,
   supabaseKey
 );
@@ -1497,10 +1497,10 @@ if (enteredPassword !== sitePassword) {
 </header>
 
 <nav>
-<button onclick="clearSearchResults(); showTab('home')">главная</button>
-<button onclick="clearSearchResults(); showTab('enha')">энха</button>
-<button onclick="clearSearchResults(); showTab('posts')">записи</button>
-<button onclick="clearSearchResults(); showTab('friends')">друзья</button>
+  <button onclick="showTab('home')">главная</button>
+  <button onclick="showTab('enha')">энха</button>
+  <button onclick="showTab('posts')">записи</button>
+  <button onclick="showTab('friends')">друзья</button>
 
   <div class="searchBox">
     <input id="searchUsername" placeholder="найти по юзернейму">
@@ -1954,7 +1954,7 @@ async function loadUsersFromSupabase(){
   }
 
   try{
-    const { data, error } = await sb
+    const { data, error } = await supabase
       .from(SUPABASE_USERS_TABLE)
       .select("*")
       .order("created_at", { ascending:false });
@@ -1983,7 +1983,7 @@ async function saveUserToSupabase(user){
   try{
     const row = userToDbRow(user);
 
-    const { data:existing, error:selectError } = await sb
+    const { data:existing, error:selectError } = await supabase
       .from(SUPABASE_USERS_TABLE)
       .select("id")
       .eq("username", user.username)
@@ -1995,14 +1995,14 @@ async function saveUserToSupabase(user){
     }
 
     if(existing && existing.length > 0){
-      const { error:updateError } = await sb
+      const { error:updateError } = await supabase
         .from(SUPABASE_USERS_TABLE)
         .update(row)
         .eq("username", user.username);
 
       if(updateError) console.error("Supabase user update error:", updateError);
     }else{
-      const { error:insertError } = await sb
+      const { error:insertError } = await supabase
         .from(SUPABASE_USERS_TABLE)
         .insert([row]);
 
@@ -2017,7 +2017,7 @@ async function deleteUserFromSupabase(username){
   if(!window.supabase || !username) return;
 
   try{
-    const { error } = await sb
+    const { error } = await supabase
       .from(SUPABASE_USERS_TABLE)
       .delete()
       .eq("username", username);
@@ -3324,23 +3324,7 @@ function showMessages(){
   messages.scrollTop = messages.scrollHeight;
 }
 
-function clearSearchResults(){
-  searchResultsBox.style.display = "none";
-  searchResults.innerHTML = "";
-  searchUsername.value = "";
-}
-
 function showTab(id){
-
-const box = document.getElementById("searchResultsBox");
-if(box) box.style.display = "none";
-
-const results = document.getElementById("searchResults");
-if(results) results.innerHTML = "";
-
-const input = document.getElementById("searchUsername");
-if(input) input.value = "";
-
   document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("active"));
   document.getElementById(id).classList.add("active");
   if(id === "friends") showFriend();
@@ -3427,7 +3411,7 @@ function makeSupabaseUserRow(user){
 
 loadUsersFromSupabase = async function(){
   try{
-    const { data, error } = await sb
+    const { data, error } = await supabase
       .from("NIARI")
       .select("*");
 
@@ -3460,7 +3444,7 @@ saveUserToSupabase = async function(user){
 
     const row = makeSupabaseUserRow(user);
 
-    const { data: existing, error: checkError } = await sb
+    const { data: existing, error: checkError } = await supabase
       .from("NIARI")
       .select("id")
       .eq("username", user.username)
@@ -3473,7 +3457,7 @@ saveUserToSupabase = async function(user){
     }
 
     if(existing && existing.length > 0){
-      const { error: updateError } = await sb
+      const { error: updateError } = await supabase
         .from("NIARI")
         .update(row)
         .eq("username", user.username);
@@ -3484,7 +3468,7 @@ saveUserToSupabase = async function(user){
         return false;
       }
     }else{
-      const { error: insertError } = await sb
+      const { error: insertError } = await supabase
         .from("NIARI")
         .insert([row]);
 
@@ -3579,7 +3563,7 @@ loginProfile = async function(){
   let usernameValue = loginEnter.value.trim();
   let passwordValue = passwordEnter.value.trim();
 
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from("NIARI")
     .select("*")
     .eq("username", usernameValue)
@@ -3643,7 +3627,7 @@ renderOwnerDatabase = async function(){
     return;
   }
 
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from("NIARI")
     .select("*");
 
@@ -3708,194 +3692,306 @@ searchUser = async function(){
 
 
 
-/* SUPABASE GLOBAL DATA FIX - added for follows, posts, comments, replies, likes and chat */
-const APP_DATA_POSTS_KEY = "__NIARI_POSTS__";
-const APP_DATA_FOLLOWS_KEY = "__NIARI_FOLLOWS__";
-const APP_DATA_MESSAGES_KEY = "__NIARI_MESSAGES__";
+/* SHARED SUPABASE TABLES FIX - posts, comments, likes, follows, messages, search clear */
 
-function isSystemDataRow(user){
-  return !!(user && user.username && String(user.username).startsWith("__NIARI_"));
+function getDbClient(){
+  return window.supabase && typeof supabase !== "undefined" ? supabase : null;
 }
 
-async function loadAppDataFromSupabase(key, fallbackValue){
+function safeId(){
+  return Date.now() + Math.floor(Math.random() * 1000000);
+}
+
+function clearSearchResults(){
+  const box = document.getElementById("searchResultsBox");
+  if(box) box.style.display = "none";
+
+  const results = document.getElementById("searchResults");
+  if(results) results.innerHTML = "";
+
+  const input = document.getElementById("searchUsername");
+  if(input) input.value = "";
+}
+
+function getFollows(){
+  return JSON.parse(localStorage.getItem("follows") || "{}");
+}
+
+function setFollowsLocal(follows){
+  localStorage.setItem("follows", JSON.stringify(follows || {}));
+}
+
+async function loadFollowsFromSupabase(){
+  const db = getDbClient();
+  let follows = {};
+
+  if(!db){
+    return getFollows();
+  }
+
   try{
-    const { data, error } = await sb
-      .from("NIARI")
-      .select("description")
-      .eq("username", key)
-      .limit(1);
+    const { data, error } = await db
+      .from("follows")
+      .select("*");
 
     if(error){
-      console.error("Supabase app data load error:", key, error);
-      return fallbackValue;
+      console.warn("Follows load error:", error.message);
+      return getFollows();
     }
 
-    if(!data || data.length === 0 || !data[0].description){
-      return fallbackValue;
-    }
-
-    return JSON.parse(data[0].description);
-  }catch(error){
-    console.error("Supabase app data parse/load error:", key, error);
-    return fallbackValue;
-  }
-}
-
-async function saveAppDataToSupabase(key, value){
-  try{
-    const row = {
-      username:key,
-      name:"system",
-      password:"system",
-      icon:"jw.jpeg",
-      description:JSON.stringify(value || (Array.isArray(value) ? [] : {})),
-      bias:"",
-      biasWrecker:"",
-      favSong:""
-    };
-
-    const { data:existing, error:checkError } = await sb
-      .from("NIARI")
-      .select("id")
-      .eq("username", key)
-      .limit(1);
-
-    if(checkError){
-      console.error("Supabase app data check error:", key, checkError);
-      return false;
-    }
-
-    if(existing && existing.length > 0){
-      const { error:updateError } = await sb
-        .from("NIARI")
-        .update(row)
-        .eq("username", key);
-
-      if(updateError){
-        console.error("Supabase app data update error:", key, updateError);
-        return false;
+    (data || []).forEach(row=>{
+      if(!row.follower || !row.following) return;
+      if(!follows[row.follower]) follows[row.follower] = [];
+      if(!follows[row.follower].includes(row.following)){
+        follows[row.follower].push(row.following);
       }
-    }else{
-      const { error:insertError } = await sb
-        .from("NIARI")
-        .insert([row]);
+    });
 
-      if(insertError){
-        console.error("Supabase app data insert error:", key, insertError);
-        return false;
-      }
-    }
-
-    return true;
+    setFollowsLocal(follows);
+    return follows;
   }catch(error){
-    console.error("Supabase app data save error:", key, error);
-    return false;
+    console.warn("Follows load catch:", error);
+    return getFollows();
   }
 }
 
-async function loadAllAppData(){
-  postsArray = await loadAppDataFromSupabase(APP_DATA_POSTS_KEY, JSON.parse(localStorage.getItem("postsArray")) || []);
-  messagesArray = await loadAppDataFromSupabase(APP_DATA_MESSAGES_KEY, JSON.parse(localStorage.getItem("messagesArray")) || []);
-  const followsData = await loadAppDataFromSupabase(APP_DATA_FOLLOWS_KEY, JSON.parse(localStorage.getItem("follows")) || {});
-
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
-  localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
-  localStorage.setItem("follows", JSON.stringify(followsData || {}));
+function isFollowing(fromUser, toUser){
+  let follows = getFollows();
+  return !!(follows[fromUser] && follows[fromUser].includes(toUser));
 }
 
-function persistPosts(){
-  localStorage.setItem("postsArray", JSON.stringify(postsArray));
-  saveAppDataToSupabase(APP_DATA_POSTS_KEY, postsArray);
+function areFriends(userA, userB){
+  return isFollowing(userA, userB) && isFollowing(userB, userA);
 }
 
-function persistMessages(){
-  localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
-  saveAppDataToSupabase(APP_DATA_MESSAGES_KEY, messagesArray);
-}
+async function toggleFollow(username){
+  let myUsername = localStorage.getItem("username") || "";
+  const db = getDbClient();
 
-const originalSaveFollowsLocal = saveFollows;
-saveFollows = function(follows){
-  originalSaveFollowsLocal(follows);
-  saveAppDataToSupabase(APP_DATA_FOLLOWS_KEY, follows || {});
-};
-
-const originalLoadUsersFromSupabaseForAppData = loadUsersFromSupabase;
-loadUsersFromSupabase = async function(){
-  let users = await originalLoadUsersFromSupabaseForAppData();
-  users = (users || []).filter(user => user && user.username && !isSystemDataRow(user));
-  localStorage.setItem("users", JSON.stringify(users));
-  return users;
-};
-
-const originalRenderOwnerDatabaseForAppData = renderOwnerDatabase;
-renderOwnerDatabase = async function(){
-  let page = document.getElementById("ownerDatabasePage");
-  let list = document.getElementById("ownerUsersList");
-  let ownerBtn = document.getElementById("ownerDbOpenBtn");
-
-  if(ownerBtn){
-    ownerBtn.style.display = isOwner() ? "block" : "none";
-  }
-
-  if(!list) return;
-
-  if(!isOwner()){
-    if(page) page.style.display = "none";
+  if(!myUsername){
+    alert("Сначала войди в профиль.");
     return;
   }
+
+  if(myUsername === username) return;
 
   let users = await loadUsersFromSupabase();
-
-  if(users.length === 0){
-    list.innerHTML = "<p>Пока нет аккаунтов.</p>";
+  if(!users.some(u => u.username === username)){
+    alert("Профиль не найден.");
+    await showFriend();
     return;
   }
 
-  list.innerHTML = users.map(user => `
-    <div class="ownerDbCard">
-      <img src="${user.icon || 'jw.jpeg'}">
-      <div class="ownerDbInfo">
-        <b>${user.name || 'Без имени'}</b><br>
-        <span>${user.username || ''}</span><br>
-        <small>Биас: ${user.bias || 'не выбран'}<br>Любимая песня: ${user.favSong || 'не выбрана'}</small>
-      </div>
-      <div class="ownerDbActions">
-        <button class="ownerSmallBtn" onclick="clearSearchResults(); openPublicProfile('${user.username}', 'database')">Профиль</button>
-        ${user.username === OWNER_USERNAME ? '<b>Владелец</b>' : `<button class="deleteBtn" onclick="deleteUser('${user.username}')">Удалить</button>`}
-      </div>
-    </div>
-  `).join("");
-};
+  await loadFollowsFromSupabase();
 
-const originalSavePostLocal = savePost;
-savePost = function(author,text,photo){
-  postsArray.push({
-    id:Date.now(),
+  if(isFollowing(myUsername, username)){
+    if(db){
+      await db
+        .from("follows")
+        .delete()
+        .eq("follower", myUsername)
+        .eq("following", username);
+    }
+
+    let follows = getFollows();
+    follows[myUsername] = (follows[myUsername] || []).filter(u => u !== username);
+    setFollowsLocal(follows);
+  }else{
+    if(db){
+      await db
+        .from("follows")
+        .insert([
+          {
+            id:safeId(),
+            follower:myUsername,
+            following:username
+          }
+        ]);
+    }
+
+    let follows = getFollows();
+    if(!follows[myUsername]) follows[myUsername] = [];
+    if(!follows[myUsername].includes(username)) follows[myUsername].push(username);
+    setFollowsLocal(follows);
+  }
+
+  await loadFollowsFromSupabase();
+  updateFollowButton(username);
+  await showFriend();
+  showProfile();
+}
+
+async function toggleFollowPublic(){
+  let username = document.getElementById("publicUsername").innerText;
+  await toggleFollow(username);
+}
+
+async function loadPostsFromSupabase(){
+  const db = getDbClient();
+
+  if(!db){
+    postsArray = JSON.parse(localStorage.getItem("postsArray") || "[]");
+    return postsArray;
+  }
+
+  try{
+    const [postsResult, commentsResult, likesResult] = await Promise.all([
+      db.from("posts").select("*").order("created_at", { ascending:false }),
+      db.from("comments").select("*").order("created_at", { ascending:true }),
+      db.from("likes").select("*")
+    ]);
+
+    if(postsResult.error){
+      console.warn("Posts load error:", postsResult.error.message);
+      return postsArray;
+    }
+
+    if(commentsResult.error){
+      console.warn("Comments load error:", commentsResult.error.message);
+    }
+
+    if(likesResult.error){
+      console.warn("Likes load error:", likesResult.error.message);
+    }
+
+    const users = await loadUsersFromSupabase();
+    const userByUsername = {};
+    users.forEach(u => userByUsername[u.username] = u);
+
+    const commentsByPost = {};
+    const commentObjectsById = {};
+
+    (commentsResult.data || []).forEach(row=>{
+      const user = userByUsername[row.username] || {};
+      const commentObj = {
+        id:row.id,
+        name:user.name || row.username || "Гость",
+        username:row.username || "",
+        icon:user.icon || "jw.jpeg",
+        text:row.text || "",
+        replies:[]
+      };
+
+      commentObjectsById[String(row.id)] = commentObj;
+
+      if(row.reply_to){
+        return;
+      }
+
+      if(!commentsByPost[String(row.post_id)]) commentsByPost[String(row.post_id)] = [];
+      commentsByPost[String(row.post_id)].push(commentObj);
+    });
+
+    (commentsResult.data || []).forEach(row=>{
+      if(!row.reply_to) return;
+
+      const user = userByUsername[row.username] || {};
+      const replyObj = {
+        id:row.id,
+        name:user.name || row.username || "Гость",
+        username:row.username || "",
+        icon:user.icon || "jw.jpeg",
+        text:row.text || ""
+      };
+
+      const parent = commentObjectsById[String(row.reply_to)];
+      if(parent){
+        if(!parent.replies) parent.replies = [];
+        parent.replies.push(replyObj);
+      }
+    });
+
+    const likedByPost = {};
+    (likesResult.data || []).forEach(row=>{
+      if(!likedByPost[String(row.post_id)]) likedByPost[String(row.post_id)] = [];
+      if(row.username && !likedByPost[String(row.post_id)].includes(row.username)){
+        likedByPost[String(row.post_id)].push(row.username);
+      }
+    });
+
+    postsArray = (postsResult.data || []).map(row=>{
+      const user = userByUsername[row.username] || {};
+      const likedBy = likedByPost[String(row.id)] || [];
+
+      return {
+        id:row.id,
+        author:user.name || row.username || "Гость",
+        username:row.username || "",
+        text:row.text || "",
+        photo:row.image || "",
+        likes:likedBy.length,
+        likedBy:likedBy,
+        comments:commentsByPost[String(row.id)] || []
+      };
+    });
+
+    localStorage.setItem("postsArray", JSON.stringify(postsArray));
+    return postsArray;
+  }catch(error){
+    console.warn("Posts load catch:", error);
+    return postsArray;
+  }
+}
+
+async function refreshPostsEverywhere(){
+  await loadPostsFromSupabase();
+
+  showPosts();
+  showProfilePosts();
+
+  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
+    let username = publicUsername.innerText;
+    if(username) renderPublicPosts(username);
+  }
+}
+
+async function savePost(author, text, photo){
+  const db = getDbClient();
+  const id = safeId();
+  const username = localStorage.getItem("username") || "";
+
+  const newPost = {
+    id:id,
     author:author,
-    username:localStorage.getItem("username") || "",
+    username:username,
     text:text,
     photo:photo,
     likes:0,
     likedBy:[],
     comments:[]
-  });
+  };
 
-  persistPosts();
+  postsArray.unshift(newPost);
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+
+  if(db){
+    const { error } = await db
+      .from("posts")
+      .insert([
+        {
+          id:id,
+          username:username,
+          text:text || "",
+          image:photo || ""
+        }
+      ]);
+
+    if(error){
+      console.warn("Post insert error:", error.message);
+      alert("Запись не сохранилась в Supabase: " + error.message);
+    }
+  }
 
   if(document.getElementById("postName")) postName.value="";
   if(document.getElementById("postText")) postText.value="";
   if(document.getElementById("postPhoto")) postPhoto.value="";
 
-  showPosts();
-  showProfilePosts();
-  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
-    let u = getUsers().find(x => x.username === publicUsername.innerText);
-    if(u) renderPublicPosts(u);
-  }
-};
+  await refreshPostsEverywhere();
+}
 
-deletePost = function(id){
-  let post = postsArray.find(p => p.id === id);
+async function deletePost(id){
+  const db = getDbClient();
+  let post = postsArray.find(p => String(p.id) === String(id));
   let myName = localStorage.getItem("name") || "Гость";
   let myUsername = localStorage.getItem("username") || "";
 
@@ -3906,90 +4002,312 @@ deletePost = function(id){
     return;
   }
 
-  postsArray = postsArray.filter(p => p.id !== id);
-  persistPosts();
+  postsArray = postsArray.filter(p => String(p.id) !== String(id));
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
 
-  showPosts();
-  showProfilePosts();
-  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
-    let u = getUsers().find(x => x.username === publicUsername.innerText);
-    if(u) renderPublicPosts(u);
+  if(db){
+    await db.from("likes").delete().eq("post_id", id);
+    await db.from("comments").delete().eq("post_id", id);
+    await db.from("posts").delete().eq("id", id);
   }
-};
 
-likePost = function(id){
-  let post = postsArray.find(p=>p.id===id);
+  await refreshPostsEverywhere();
+}
+
+async function likePost(id){
+  const db = getDbClient();
   let myUsername = localStorage.getItem("username") || "";
 
-  if(!post) return;
   if(!myUsername){
     alert("Сначала войди в профиль.");
     return;
   }
 
+  let post = postsArray.find(p => String(p.id) === String(id));
+  if(!post) return;
+
   if(!post.likedBy) post.likedBy = [];
 
   if(post.likedBy.includes(myUsername)){
     post.likedBy = post.likedBy.filter(u => u !== myUsername);
+
+    if(db){
+      await db
+        .from("likes")
+        .delete()
+        .eq("post_id", id)
+        .eq("username", myUsername);
+    }
   }else{
     post.likedBy.push(myUsername);
+
+    if(db){
+      await db
+        .from("likes")
+        .insert([
+          {
+            id:safeId(),
+            post_id:id,
+            username:myUsername
+          }
+        ]);
+    }
   }
 
   post.likes = post.likedBy.length;
-  persistPosts();
-  showPosts();
-  showProfilePosts();
-  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
-    let u = getUsers().find(x => x.username === publicUsername.innerText);
-    if(u) renderPublicPosts(u);
-  }
-};
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+  await refreshPostsEverywhere();
+}
 
-refreshPostsEverywhere = function(){
-  persistPosts();
-  showPosts();
-  showProfilePosts();
-  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
-    let u = getUsers().find(x => x.username === publicUsername.innerText);
-    if(u) renderPublicPosts(u);
-  }
-};
+async function addComment(id){
+  const db = getDbClient();
+  let input = document.getElementById("comment-" + id);
+  let text = input ? input.value.trim() : "";
+  let usernameValue = localStorage.getItem("username") || "";
 
-sendMessage = function(){
+  if(text === "") return;
+
+  if(!usernameValue){
+    alert("Сначала войди в профиль.");
+    return;
+  }
+
+  let post = postsArray.find(p => String(p.id) === String(id));
+  if(!post) return;
+  if(!post.comments) post.comments = [];
+
+  const users = await loadUsersFromSupabase();
+  const user = users.find(u => u.username === usernameValue) || {};
+
+  const newComment = {
+    id:safeId(),
+    name:user.name || localStorage.getItem("name") || "Гость",
+    username:usernameValue,
+    icon:user.icon || localStorage.getItem("icon") || "jw.jpeg",
+    text:text,
+    replies:[]
+  };
+
+  post.comments.push(newComment);
+  input.value = "";
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+
+  if(db){
+    const { error } = await db
+      .from("comments")
+      .insert([
+        {
+          id:newComment.id,
+          post_id:id,
+          username:usernameValue,
+          text:text,
+          reply_to:null
+        }
+      ]);
+
+    if(error){
+      console.warn("Comment insert error:", error.message);
+      alert("Комментарий не сохранился в Supabase: " + error.message);
+    }
+  }
+
+  await refreshPostsEverywhere();
+}
+
+async function addReply(postId, commentIndex){
+  const db = getDbClient();
+  let input = document.getElementById("reply-" + postId + "-" + commentIndex);
+  let text = input ? input.value.trim() : "";
+  let usernameValue = localStorage.getItem("username") || "";
+
+  if(text === "") return;
+
+  if(!usernameValue){
+    alert("Сначала войди в профиль.");
+    return;
+  }
+
+  let post = postsArray.find(p => String(p.id) === String(postId));
+  if(!post || !post.comments || !post.comments[commentIndex]) return;
+
+  if(!post.comments[commentIndex].replies) post.comments[commentIndex].replies = [];
+
+  const users = await loadUsersFromSupabase();
+  const user = users.find(u => u.username === usernameValue) || {};
+  const parentComment = post.comments[commentIndex];
+
+  const newReply = {
+    id:safeId(),
+    name:user.name || localStorage.getItem("name") || "Гость",
+    username:usernameValue,
+    icon:user.icon || localStorage.getItem("icon") || "jw.jpeg",
+    text:text
+  };
+
+  post.comments[commentIndex].replies.push(newReply);
+  input.value = "";
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+
+  if(db){
+    const { error } = await db
+      .from("comments")
+      .insert([
+        {
+          id:newReply.id,
+          post_id:postId,
+          username:usernameValue,
+          text:text,
+          reply_to:parentComment.id || null
+        }
+      ]);
+
+    if(error){
+      console.warn("Reply insert error:", error.message);
+      alert("Ответ не сохранился в Supabase: " + error.message);
+    }
+  }
+
+  await refreshPostsEverywhere();
+}
+
+async function loadMessagesFromSupabase(){
+  const db = getDbClient();
+
+  if(!db){
+    messagesArray = JSON.parse(localStorage.getItem("messagesArray") || "[]");
+    return messagesArray;
+  }
+
+  try{
+    const { data, error } = await db
+      .from("messages")
+      .select("*")
+      .order("created_at", { ascending:true });
+
+    if(error){
+      console.warn("Messages load error:", error.message);
+      return messagesArray;
+    }
+
+    messagesArray = (data || []).map(row => ({
+      id:row.id,
+      from:row.from_user,
+      to:row.to_user,
+      text:row.text || ""
+    }));
+
+    localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
+    return messagesArray;
+  }catch(error){
+    console.warn("Messages load catch:", error);
+    return messagesArray;
+  }
+}
+
+async function showFriend(){
+  await loadFollowsFromSupabase();
+
+  let myUsername = localStorage.getItem("username") || "";
+  let users = await loadUsersFromSupabase();
+  let friends = users.filter(u => u.username !== myUsername && areFriends(myUsername, u.username));
+
+  profileIcon.src = localStorage.getItem("icon") || "jw.jpeg";
+
+  if(!myUsername){
+    friendList.innerHTML = "Сначала войди в профиль, чтобы видеть друзей.";
+    return;
+  }
+
+  let friendsHTML = friends.length === 0
+    ? "<p>Пока нет друзей. Друг появится, когда вы подпишетесь друг на друга.</p>"
+    : friends.map(user => `
+      <div class="friend">
+        <img src="${user.icon || 'jw.jpeg'}">
+        <h3>${user.name || 'Без имени'}</h3>
+        <p>${user.username || ''}</p>
+        <div class="mutualBadge">вы друзья</div>
+        <button onclick="clearSearchResults(); openMyProfile(); openPublicProfile('${user.username}', 'profile')">Открыть профиль</button>
+        <button onclick="openChat('${user.username}')">Написать</button>
+      </div>
+    `).join("");
+
+  friendList.innerHTML = `
+    <div class="friendsSections">
+      <h3 class="friendsSubTitle">Мои друзья</h3>
+      <div class="friendsGrid">${friendsHTML}</div>
+    </div>
+  `;
+}
+
+async function openChat(friendName){
+  currentChatFriend = friendName;
+  clearSearchResults();
+  showTab("friends");
+  chatBox.style.display = "block";
+  chatTitle.innerText = "Чат с " + friendName;
+  await loadMessagesFromSupabase();
+  showMessages();
+}
+
+async function sendMessage(){
   let text = chatText.value.trim();
-  let myName = localStorage.getItem("username") || "Гость";
+  let myName = localStorage.getItem("username") || "";
+  const db = getDbClient();
 
   if(text === ""){
     alert("Напиши сообщение");
     return;
   }
 
-  messagesArray.push({
-    id:Date.now(),
+  if(!myName){
+    alert("Сначала войди в профиль.");
+    return;
+  }
+
+  const newMessage = {
+    id:safeId(),
     from:myName,
     to:currentChatFriend,
-    text:text,
-    created_at:new Date().toISOString()
-  });
+    text:text
+  };
 
-  persistMessages();
+  messagesArray.push(newMessage);
+  localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
+
+  if(db){
+    const { error } = await db
+      .from("messages")
+      .insert([
+        {
+          id:newMessage.id,
+          from_user:myName,
+          to_user:currentChatFriend,
+          text:text
+        }
+      ]);
+
+    if(error){
+      console.warn("Message insert error:", error.message);
+      alert("Сообщение не сохранилось в Supabase: " + error.message);
+    }
+  }
 
   chatText.value="";
+  await loadMessagesFromSupabase();
   showMessages();
-};
+}
 
-showMessages = function(){
+function showMessages(){
   messages.innerHTML="";
   let myName = localStorage.getItem("username") || "Гость";
 
   messagesArray.forEach(msg=>{
-    let isCurrentChat =
+    let isThisChat =
       (msg.from === myName && msg.to === currentChatFriend) ||
       (msg.from === currentChatFriend && msg.to === myName);
 
-    if(isCurrentChat){
+    if(isThisChat){
       let side = msg.from === myName ? "me" : "other";
-
       messages.innerHTML += `
         <div class="message ${side}">
           <div>${escapeText(msg.text)}</div>
@@ -3999,51 +4317,42 @@ showMessages = function(){
   });
 
   messages.scrollTop = messages.scrollHeight;
-};
+}
 
-const originalOpenChatForAppData = openChat;
-openChat = async function(friendName){
-  await loadAllAppData();
-  currentChatFriend = friendName;
-  showTab("friends");
-  chatBox.style.display = "block";
-  chatTitle.innerText = "Чат с " + friendName;
-  showMessages();
-};
+function renderPublicPosts(userOrUsername){
+  let box = document.getElementById("publicPosts");
+  if(!box) return;
 
-const originalShowFriendForAppData = showFriend;
-showFriend = async function(){
-  await loadAllAppData();
-  await originalShowFriendForAppData();
-};
+  let username = typeof userOrUsername === "string" ? userOrUsername : (userOrUsername.username || "");
+  let name = typeof userOrUsername === "string" ? "" : (userOrUsername.name || "");
 
-clearSearchResults = function(){
-  const box = document.getElementById("searchResultsBox");
-  if(box) box.style.display = "none";
+  box.innerHTML = "";
 
-  const results = document.getElementById("searchResults");
-  if(results) results.innerHTML = "";
+  let userPosts = postsArray.filter(post =>
+    post.username === username || (name && post.author === name)
+  );
 
-  const input = document.getElementById("searchUsername");
-  if(input) input.value = "";
-};
+  if(userPosts.length === 0){
+    box.innerHTML = "<p>Пока нет записей.</p>";
+    return;
+  }
 
-const originalOpenMyProfileForSearch = openMyProfile;
-openMyProfile = function(){
+  userPosts.forEach(post=>{
+    box.innerHTML += createPostHTML(post);
+  });
+}
+
+function showTab(id){
   clearSearchResults();
-  originalOpenMyProfileForSearch();
-};
+  document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  if(id === "friends") showFriend();
+}
 
-const originalShowTabForSearch = showTab;
-showTab = function(id){
-  clearSearchResults();
-  originalShowTabForSearch(id);
-};
-
-const originalSearchUserForAppData = searchUser;
-searchUser = async function(){
+async function searchUser(){
   let q = searchUsername.value.trim();
   let users = await loadUsersFromSupabase();
+  await loadFollowsFromSupabase();
 
   searchResultsBox.style.display = "block";
   searchResults.innerHTML = "";
@@ -4063,12 +4372,17 @@ searchUser = async function(){
       <p>${found.description || ""}</p>
       <button onclick="clearSearchResults(); openMyProfile(); openPublicProfile('${found.username}', 'profile')">Открыть профиль</button>
       <button onclick="toggleFollow('${found.username}')">${isFollowing(localStorage.getItem("username") || "", found.username) ? "Вы подписаны" : "Подписаться"}</button>
-      <button onclick="clearSearchResults(); openChat('${found.username}')">Написать</button>
+      <button onclick="openChat('${found.username}')">Написать</button>
       ${isOwner() && found.username !== OWNER_USERNAME ? `<button class="deleteBtn" onclick="deleteUser('${found.username}')">Удалить аккаунт</button>` : ""}
     </div>
   `;
-};
-/* END SUPABASE GLOBAL DATA FIX */
+}
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  const profileButton = document.querySelector(".profile");
+  if(profileButton) profileButton.addEventListener("click", clearSearchResults, true);
+});
+/* END SHARED SUPABASE TABLES FIX */
 
 fillSelects();
 renderStatusSelects();
@@ -4078,7 +4392,9 @@ cleanDeletedData();
 
 (async()=>{
   await loadUsersFromSupabase();
-  await loadAllAppData();
+  await loadFollowsFromSupabase();
+  await loadPostsFromSupabase();
+  await loadMessagesFromSupabase();
   await showFriend();
   showPosts();
   showMessages();
