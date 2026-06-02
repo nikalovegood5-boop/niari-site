@@ -1418,29 +1418,67 @@ h1,h2{
 }
 
 
-/* owner database mobile back button under playing song */
+/* owner database mobile back button */
 .ownerDbPanel{
   position:relative;
 }
 
 @media(max-width:700px){
+
+  body.musicPlaying #ownerDatabasePage .ownerDbPanel{
+    position:relative !important;
+    padding-top:95px !important;
+  }
+
   body.musicPlaying #ownerDatabasePage .backBtn{
-    position:fixed !important;
-    top:118px !important;
-    left:28px !important;
-    z-index:900 !important;
+    position:absolute !important;
+    top:20px !important;
+    left:18px !important;
+    z-index:999 !important;
     display:block !important;
   }
 
-  body.musicPlaying #ownerDatabasePage .ownerDbPanel{
-    padding-top:90px !important;
-  }
 }
 
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<script>
+const supabaseUrl = "https://gdmqanrkgxarxwdlxvtz.supabase.co";
+const supabaseKey = "sb_publishable_4Rll7JueMTvJhJvY7UPNZA_Dy6i2j9b";
+
+const supabase = window.supabase.createClient(
+  supabaseUrl,
+  supabaseKey
+);
+</script>
+
 </head>
 
 <body>
+  <script>
+const sitePassword = "enha7";
+const enteredPassword = prompt("Введите пароль:");
+
+if (enteredPassword !== sitePassword) {
+  document.body.innerHTML = `
+  <div style="
+    background:black;
+    color:white;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:30px;
+    font-family:Arial;
+  ">
+    Неверный пароль
+  </div>
+  `;
+  throw new Error("Wrong password");
+}
+</script>
 
 <div class="nowPlaying" id="nowPlaying">
   <span id="nowPlayingText">Сейчас играет:</span>
@@ -1877,6 +1915,120 @@ function getUsers(){
 
 const OWNER_USERNAME = "nikadura";
 
+const SUPABASE_USERS_TABLE = "NIARI";
+
+function normalizeUserFromDb(user){
+  if(!user) return null;
+
+  return {
+    name:user.name || "Без имени",
+    username:user.username || "",
+    password:user.password || "",
+    birthday:user.birthday || "ENHYPEN",
+    icon:user.icon || "jw.jpeg",
+    bias:user.bias || "",
+    biasWrecker:user.biasWrecker || "",
+    favSong:user.favSong || "",
+    description:user.description || "",
+    status:user.status || "chibijungwon.png",
+    lastSong:user.lastSong || ""
+  };
+}
+
+function userToDbRow(user){
+  return {
+    username:user.username || "",
+    name:user.name || "",
+    password:user.password || "",
+    icon:user.icon || "jw.jpeg",
+    description:user.description || "",
+    bias:user.bias || "",
+    biasWrecker:user.biasWrecker || "",
+    favSong:user.favSong || ""
+  };
+}
+
+async function loadUsersFromSupabase(){
+  if(!window.supabase){
+    return getUsers();
+  }
+
+  try{
+    const { data, error } = await supabase
+      .from(SUPABASE_USERS_TABLE)
+      .select("*")
+      .order("created_at", { ascending:false });
+
+    if(error){
+      console.error("Supabase users load error:", error);
+      return getUsers();
+    }
+
+    let deleted = getDeletedUsers();
+    let users = (data || [])
+      .map(normalizeUserFromDb)
+      .filter(user => user && user.username && !deleted.includes(user.username));
+
+    localStorage.setItem("users", JSON.stringify(users));
+    return users;
+  }catch(error){
+    console.error("Supabase users load error:", error);
+    return getUsers();
+  }
+}
+
+async function saveUserToSupabase(user){
+  if(!window.supabase || !user || !user.username) return;
+
+  try{
+    const row = userToDbRow(user);
+
+    const { data:existing, error:selectError } = await supabase
+      .from(SUPABASE_USERS_TABLE)
+      .select("id")
+      .eq("username", user.username)
+      .limit(1);
+
+    if(selectError){
+      console.error("Supabase user check error:", selectError);
+      return;
+    }
+
+    if(existing && existing.length > 0){
+      const { error:updateError } = await supabase
+        .from(SUPABASE_USERS_TABLE)
+        .update(row)
+        .eq("username", user.username);
+
+      if(updateError) console.error("Supabase user update error:", updateError);
+    }else{
+      const { error:insertError } = await supabase
+        .from(SUPABASE_USERS_TABLE)
+        .insert([row]);
+
+      if(insertError) console.error("Supabase user insert error:", insertError);
+    }
+  }catch(error){
+    console.error("Supabase user save error:", error);
+  }
+}
+
+async function deleteUserFromSupabase(username){
+  if(!window.supabase || !username) return;
+
+  try{
+    const { error } = await supabase
+      .from(SUPABASE_USERS_TABLE)
+      .delete()
+      .eq("username", username);
+
+    if(error) console.error("Supabase user delete error:", error);
+  }catch(error){
+    console.error("Supabase user delete error:", error);
+  }
+}
+
+
 function isOwner(){
   return localStorage.getItem("username") === OWNER_USERNAME;
 }
@@ -1898,7 +2050,7 @@ function areFriends(userA, userB){
   return isFollowing(userA, userB) && isFollowing(userB, userA);
 }
 
-function toggleFollow(username){
+async function toggleFollow(username){
   let myUsername = localStorage.getItem("username") || "";
 
   if(!myUsername){
@@ -1910,11 +2062,11 @@ function toggleFollow(username){
     return;
   }
 
-  let users = getUsers();
+  let users = await loadUsersFromSupabase();
   if(!users.some(u => u.username === username)){
     alert("Профиль не найден.");
     cleanDeletedData();
-    showFriend();
+    await showFriend();
     return;
   }
 
@@ -1929,13 +2081,13 @@ function toggleFollow(username){
 
   saveFollows(follows);
   updateFollowButton(username);
-  showFriend();
+  await showFriend();
   showProfile();
 }
 
-function toggleFollowPublic(){
+async function toggleFollowPublic(){
   let username = document.getElementById("publicUsername").innerText;
-  toggleFollow(username);
+  await toggleFollow(username);
 }
 
 function updateFollowButton(username){
@@ -1988,18 +2140,20 @@ function cleanDeletedData(){
   localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
 }
 
-function openOwnerDatabase(){
+async function openOwnerDatabase(){
   if(!isOwner()){
     alert("База данных доступна только владельцу сайта.");
     return;
   }
+
+  await loadUsersFromSupabase();
 
   document.getElementById("profileBlock").style.display = "none";
   document.getElementById("settingsBlock").style.display = "none";
   document.getElementById("registerBlock").style.display = "none";
   document.getElementById("ownerDatabasePage").style.display = "block";
 
-  renderOwnerDatabase();
+  await renderOwnerDatabase();
 }
 
 function backFromOwnerDatabase(){
@@ -2008,7 +2162,7 @@ function backFromOwnerDatabase(){
   showProfile();
 }
 
-function renderOwnerDatabase(){
+async function renderOwnerDatabase(){
   let page = document.getElementById("ownerDatabasePage");
   let list = document.getElementById("ownerUsersList");
   let ownerBtn = document.getElementById("ownerDbOpenBtn");
@@ -2024,7 +2178,7 @@ function renderOwnerDatabase(){
     return;
   }
 
-  let users = getUsers();
+  let users = await loadUsersFromSupabase();
 
   if(users.length === 0){
     list.innerHTML = "<p>Пока нет аккаунтов.</p>";
@@ -2069,7 +2223,7 @@ function openDatabaseProfile(username){
   `;
 }
 
-function deleteUser(username){
+async function deleteUser(username){
   if(!isOwner()){
     alert("Удалять аккаунты может только владелец сайта.");
     return;
@@ -2087,6 +2241,8 @@ function deleteUser(username){
   let deletedUser = getUsers().find(user => user.username === username);
   let users = getUsers().filter(user => user.username !== username);
   localStorage.setItem("users", JSON.stringify(users));
+
+  await deleteUserFromSupabase(username);
 
   postsArray = postsArray.filter(post =>
     post.username !== username && (!deletedUser || post.author !== deletedUser.name)
@@ -2112,11 +2268,11 @@ function deleteUser(username){
     backFromPublicProfile();
   }
 
-  renderOwnerDatabase();
-  showFriend();
+  await renderOwnerDatabase();
+  await showFriend();
   showPosts();
   showProfilePosts();
-  renderProfileFriends();
+  await renderProfileFriends();
   alert("Аккаунт удалён.");
 }
 
@@ -2376,42 +2532,41 @@ function backToProfile(){
   showProfile();
 }
 
-function saveUserToList(){
+async function saveUserToList(){
   let users = getUsers();
-  let oldUsername = localStorage.getItem("oldUsername") || localStorage.getItem("username");
-  let deleted = getDeletedUsers();
   let currentUsername = localStorage.getItem("username");
 
+  let deleted = getDeletedUsers();
   if(deleted.includes(currentUsername)){
     logoutProfile();
     return;
   }
 
   let user = {
-    name:localStorage.getItem("name"),
-    username:localStorage.getItem("username"),
-    password:localStorage.getItem("password"),
-    birthday:localStorage.getItem("birthday"),
-    icon:localStorage.getItem("icon"),
-    bias:localStorage.getItem("bias"),
-    biasWrecker:localStorage.getItem("biasWrecker"),
-    favSong:localStorage.getItem("favSong"),
-    description:localStorage.getItem("description"),
-    status:localStorage.getItem("status"),
-    lastSong:localStorage.getItem("lastSong")
+    name: localStorage.getItem("name"),
+    username: localStorage.getItem("username"),
+    password: localStorage.getItem("password"),
+    birthday: localStorage.getItem("birthday"),
+    icon: localStorage.getItem("icon"),
+    bias: localStorage.getItem("bias"),
+    biasWrecker: localStorage.getItem("biasWrecker"),
+    favSong: localStorage.getItem("favSong"),
+    description: localStorage.getItem("description"),
+    status: localStorage.getItem("status"),
+    lastSong: localStorage.getItem("lastSong")
   };
 
-  users = users.filter(u=>u.username !== oldUsername && u.username !== user.username);
+  users = users.filter(u => u.username !== user.username);
   users.push(user);
 
   localStorage.setItem("users", JSON.stringify(users));
-  localStorage.setItem("oldUsername", user.username);
+  await saveUserToSupabase(user);
 }
 
-function registerProfile(){
+async function registerProfile(){
   let usernameValue = username.value.trim();
   let passwordValue = password.value.trim();
-  let users = getUsers();
+  let users = await loadUsersFromSupabase();
 
   if(displayName.value.trim() === ""){
     alert("Введи имя");
@@ -2454,7 +2609,7 @@ function registerProfile(){
   localStorage.setItem("status",chosenStatus);
   localStorage.setItem("lastSong","");
 
-  saveUserToList();
+  await saveUserToList();
 
   registerBlock.style.display="none";
   settingsBlock.style.display="none";
@@ -2462,13 +2617,14 @@ function registerProfile(){
   profileBlock.style.display="block";
 
   showProfile();
-  showFriend();
+  await showFriend();
+  await renderOwnerDatabase();
 }
 
-function loginProfile(){
+async function loginProfile(){
   let usernameValue = loginEnter.value.trim();
   let passwordValue = passwordEnter.value.trim();
-  let users = getUsers();
+  let users = await loadUsersFromSupabase();
 
   if(getDeletedUsers().includes(usernameValue)){
     alert("Этот профиль удалён владельцем сайта.");
@@ -2505,7 +2661,7 @@ function loginProfile(){
   profileBlock.style.display="block";
 
   showProfile();
-  showFriend();
+  await showFriend();
 }
 
 
@@ -2524,12 +2680,12 @@ function toggleProfileFriends(){
   box.style.display = "block";
 }
 
-function renderProfileFriends(){
+async function renderProfileFriends(){
   let box = document.getElementById("profileFriendsBox");
   if(!box) return;
 
   let myUsername = localStorage.getItem("username") || "";
-  let users = getUsers().filter(u => u.username !== myUsername && areFriends(myUsername, u.username));
+  let users = (await loadUsersFromSupabase()).filter(u => u.username !== myUsername && areFriends(myUsername, u.username));
 
   if(users.length === 0){
     box.innerHTML = "<p>Пока нет друзей.</p>";
@@ -2550,8 +2706,8 @@ function renderProfileFriends(){
   `).join("");
 }
 
-function openPublicProfile(username, backPlace){
-  let users = getUsers();
+async function openPublicProfile(username, backPlace){
+  let users = await loadUsersFromSupabase();
   let user = users.find(u => u.username === username);
 
   if(!user){
@@ -2580,21 +2736,16 @@ function openPublicProfile(username, backPlace){
   publicDescription.innerText = "Описание: " + (user.description || "описание не добавлено");
   publicLastSong.innerText = "Последняя песня: " + (user.lastSong || "пока не слушал(а)");
 
-  publicBias.innerText = biasMember.name;
   publicBiasPhoto.src = biasMember.img;
+  publicBias.innerText = user.bias || "не выбран";
 
-  publicBiasWrecker.innerText = wreckerMember.name;
   publicBiasWreckerPhoto.src = wreckerMember.img;
+  publicBiasWrecker.innerText = user.biasWrecker || "не выбран";
 
-  publicSong.innerText = song.title;
+  publicSong.innerText = user.favSong || "не выбрана";
   publicSongAudio.src = song.file;
-  publicSongAudio.onplay = function(){
-    songStarted(songs.indexOf(song), publicSongAudio);
-  };
 
-  publicPostsTitle.innerText = "Записи " + (user.name || user.username || "");
-  renderPublicPosts(user);
-  profilePage.scrollTop = 0;
+  renderPublicPosts(user.username);
 }
 
 function backFromPublicProfile(){
@@ -2690,7 +2841,7 @@ function logoutProfile(){
   showFriend();
 }
 
-function saveProfile(){
+async function saveProfile(){
   let newName = document.getElementById("name").value.trim();
   let newUsername = document.getElementById("editUsername").value.trim();
   let newPassword = document.getElementById("editPassword").value.trim();
@@ -2710,7 +2861,7 @@ function saveProfile(){
     return;
   }
 
-  let users = getUsers();
+  let users = await loadUsersFromSupabase();
   let oldUsername = localStorage.getItem("username");
 
   let usernameBusy = users.some(u =>
@@ -2720,6 +2871,10 @@ function saveProfile(){
   if(usernameBusy){
     alert("Такой юзернейм уже занят.");
     return;
+  }
+
+  if(oldUsername && oldUsername !== newUsername){
+    await deleteUserFromSupabase(oldUsername);
   }
 
   localStorage.setItem("name", newName);
@@ -2734,7 +2889,7 @@ function saveProfile(){
   localStorage.setItem("icon", chosenIcon);
   localStorage.setItem("status", chosenStatus);
 
-  saveUserToList();
+  await saveUserToList();
 
   chosenIcon = localStorage.getItem("icon") || "jw.jpeg";
   chosenStatus = localStorage.getItem("status") || "chibijungwon.png";
@@ -2745,17 +2900,17 @@ function saveProfile(){
   document.getElementById("profileBlock").style.display = "block";
 
   showProfile();
-  showFriend();
-  renderOwnerDatabase();
+  await showFriend();
+  await renderOwnerDatabase();
   chooseIcon(chosenIcon);
   chooseStatus(chosenStatus);
 
   document.getElementById("profilePage").scrollTop = 0;
 }
 
-function searchUser(){
+async function searchUser(){
   let q = searchUsername.value.trim();
-  let users = getUsers();
+  let users = await loadUsersFromSupabase();
 
   searchResultsBox.style.display = "block";
   searchResults.innerHTML = "";
@@ -2769,8 +2924,8 @@ function searchUser(){
 
   searchResults.innerHTML = `
     <div class="friend">
-      <img src="${found.icon}">
-      <h3>${found.name}</h3>
+      <img src="${found.icon || 'jw.jpeg'}">
+      <h3>${found.name || 'Без имени'}</h3>
       <p>${found.username}</p>
       <p>${found.description || ""}</p>
       <p>Последняя песня: ${found.lastSong || "пока не слушал(а)"}</p>
@@ -3085,11 +3240,11 @@ function addReply(postId, commentIndex){
   refreshPostsEverywhere();
 }
 
-function showFriend(){
+async function showFriend(){
   cleanDeletedData();
 
   let myUsername = localStorage.getItem("username") || "";
-  let friends = getUsers().filter(u => u.username !== myUsername && areFriends(myUsername, u.username));
+  let friends = (await loadUsersFromSupabase()).filter(u => u.username !== myUsername && areFriends(myUsername, u.username));
 
   profileIcon.src = localStorage.getItem("icon") || "jw.jpeg";
 
@@ -3222,18 +3377,722 @@ document.addEventListener("visibilitychange",()=>{
   }
 });
 
+
+/* SUPABASE ACCOUNT FIX - added */
+function normalizeSupabaseUser(user){
+  if(!user) return null;
+  return {
+    name: user.name || "Без имени",
+    username: user.username || "",
+    password: user.password || "",
+    birthday: user.birthday || "ENHYPEN",
+    icon: user.icon || "jw.jpeg",
+    bias: user.bias || "",
+    biasWrecker: user.biasWrecker || "",
+    favSong: user.favSong || "",
+    description: user.description || "",
+    status: user.status || "chibijungwon.png",
+    lastSong: user.lastSong || ""
+  };
+}
+
+function makeSupabaseUserRow(user){
+  return {
+    username: user.username || "",
+    name: user.name || "",
+    password: user.password || "",
+    icon: user.icon || "jw.jpeg",
+    description: user.description || "",
+    bias: user.bias || "",
+    biasWrecker: user.biasWrecker || "",
+    favSong: user.favSong || ""
+  };
+}
+
+loadUsersFromSupabase = async function(){
+  try{
+    const { data, error } = await supabase
+      .from("NIARI")
+      .select("*");
+
+    if(error){
+      console.error("Supabase SELECT error:", error);
+      alert("Supabase не отдаёт пользователей: " + error.message);
+      return getUsers();
+    }
+
+    let deleted = getDeletedUsers();
+    let users = (data || [])
+      .map(normalizeSupabaseUser)
+      .filter(user => user && user.username && !deleted.includes(user.username));
+
+    localStorage.setItem("users", JSON.stringify(users));
+    return users;
+  }catch(error){
+    console.error("Supabase SELECT catch:", error);
+    alert("Ошибка подключения к Supabase. Открой Console/F12 для деталей.");
+    return getUsers();
+  }
+};
+
+saveUserToSupabase = async function(user){
+  try{
+    if(!user || !user.username){
+      alert("Нет username, аккаунт не сохранён.");
+      return false;
+    }
+
+    const row = makeSupabaseUserRow(user);
+
+    const { data: existing, error: checkError } = await supabase
+      .from("NIARI")
+      .select("id")
+      .eq("username", user.username)
+      .limit(1);
+
+    if(checkError){
+      console.error("Supabase CHECK error:", checkError);
+      alert("Supabase не проверяет аккаунт: " + checkError.message);
+      return false;
+    }
+
+    if(existing && existing.length > 0){
+      const { error: updateError } = await supabase
+        .from("NIARI")
+        .update(row)
+        .eq("username", user.username);
+
+      if(updateError){
+        console.error("Supabase UPDATE error:", updateError);
+        alert("Supabase не обновляет аккаунт: " + updateError.message);
+        return false;
+      }
+    }else{
+      const { error: insertError } = await supabase
+        .from("NIARI")
+        .insert([row]);
+
+      if(insertError){
+        console.error("Supabase INSERT error:", insertError);
+        alert("Supabase не сохраняет аккаунт: " + insertError.message);
+        return false;
+      }
+    }
+
+    await loadUsersFromSupabase();
+    return true;
+  }catch(error){
+    console.error("Supabase SAVE catch:", error);
+    alert("Ошибка сохранения в Supabase.");
+    return false;
+  }
+};
+
+registerProfile = async function(){
+  let usernameValue = username.value.trim();
+  let passwordValue = password.value.trim();
+  let users = await loadUsersFromSupabase();
+
+  if(displayName.value.trim() === ""){
+    alert("Введи имя");
+    return;
+  }
+
+  if(usernameValue === ""){
+    alert("Введи юзернейм");
+    return;
+  }
+
+  if(passwordValue === ""){
+    alert("Введи пароль");
+    return;
+  }
+
+  if(getDeletedUsers().includes(usernameValue)){
+    alert("Этот профиль удалён владельцем сайта.");
+    return;
+  }
+
+  if(users.some(u => u.username === usernameValue)){
+    alert("Такой юзернейм уже занят.");
+    return;
+  }
+
+  let newUser = {
+    name: displayName.value.trim(),
+    username: usernameValue,
+    password: passwordValue,
+    birthday: "ENHYPEN",
+    icon: chosenIcon,
+    bias: bias.value,
+    biasWrecker: biasWrecker.value,
+    favSong: favSong.value,
+    description: description.value,
+    status: chosenStatus,
+    lastSong: ""
+  };
+
+  let saved = await saveUserToSupabase(newUser);
+  if(!saved) return;
+
+  localStorage.setItem("registered","yes");
+  localStorage.setItem("name",newUser.name);
+  localStorage.setItem("username",newUser.username);
+  localStorage.setItem("oldUsername",newUser.username);
+  localStorage.setItem("password",newUser.password);
+  localStorage.setItem("birthday",newUser.birthday);
+  localStorage.setItem("icon",newUser.icon);
+  localStorage.setItem("bias",newUser.bias);
+  localStorage.setItem("biasWrecker",newUser.biasWrecker);
+  localStorage.setItem("favSong",newUser.favSong);
+  localStorage.setItem("description",newUser.description);
+  localStorage.setItem("status",newUser.status);
+  localStorage.setItem("lastSong",newUser.lastSong);
+
+  registerBlock.style.display = "none";
+  settingsBlock.style.display = "none";
+  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
+  profileBlock.style.display = "block";
+
+  showProfile();
+  await showFriend();
+  await renderOwnerDatabase();
+};
+
+loginProfile = async function(){
+  let usernameValue = loginEnter.value.trim();
+  let passwordValue = passwordEnter.value.trim();
+
+  const { data, error } = await supabase
+    .from("NIARI")
+    .select("*")
+    .eq("username", usernameValue)
+    .eq("password", passwordValue)
+    .limit(1);
+
+  if(error){
+    console.error("Supabase LOGIN error:", error);
+    alert("Ошибка входа через Supabase: " + error.message);
+    return;
+  }
+
+  let user = data && data.length ? normalizeSupabaseUser(data[0]) : null;
+
+  if(!user){
+    alert("Неверный юзернейм или пароль");
+    return;
+  }
+
+  localStorage.setItem("registered","yes");
+  localStorage.setItem("name",user.name);
+  localStorage.setItem("username",user.username);
+  localStorage.setItem("oldUsername",user.username);
+  localStorage.setItem("password",user.password);
+  localStorage.setItem("birthday",user.birthday || "");
+  localStorage.setItem("icon",user.icon || "jw.jpeg");
+  localStorage.setItem("bias",user.bias || "");
+  localStorage.setItem("biasWrecker",user.biasWrecker || "");
+  localStorage.setItem("favSong",user.favSong || "");
+  localStorage.setItem("description",user.description || "");
+  localStorage.setItem("status",user.status || "chibijungwon.png");
+  localStorage.setItem("lastSong",user.lastSong || "");
+
+  chosenIcon = user.icon || "jw.jpeg";
+  chosenStatus = user.status || "chibijungwon.png";
+
+  await loadUsersFromSupabase();
+
+  registerBlock.style.display = "none";
+  settingsBlock.style.display = "none";
+  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
+  profileBlock.style.display = "block";
+
+  showProfile();
+  await showFriend();
+};
+
+renderOwnerDatabase = async function(){
+  let page = document.getElementById("ownerDatabasePage");
+  let list = document.getElementById("ownerUsersList");
+  let ownerBtn = document.getElementById("ownerDbOpenBtn");
+
+  if(ownerBtn){
+    ownerBtn.style.display = isOwner() ? "block" : "none";
+  }
+
+  if(!list) return;
+
+  if(!isOwner()){
+    if(page) page.style.display = "none";
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("NIARI")
+    .select("*");
+
+  if(error){
+    console.error("Supabase OWNER SELECT error:", error);
+    list.innerHTML = "<p>Supabase ошибка: " + error.message + "</p>";
+    return;
+  }
+
+  let users = (data || []).map(normalizeSupabaseUser).filter(u => u && u.username);
+  localStorage.setItem("users", JSON.stringify(users));
+
+  if(users.length === 0){
+    list.innerHTML = "<p>Пока нет аккаунтов.</p>";
+    return;
+  }
+
+  list.innerHTML = users.map(user => `
+    <div class="ownerDbCard">
+      <img src="${user.icon || 'jw.jpeg'}">
+      <div class="ownerDbInfo">
+        <b>${user.name || 'Без имени'}</b><br>
+        <span>${user.username || ''}</span><br>
+        <small>Биас: ${user.bias || 'не выбран'}<br>Любимая песня: ${user.favSong || 'не выбрана'}</small>
+      </div>
+      <div class="ownerDbActions">
+        <button class="ownerSmallBtn" onclick="openPublicProfile('${user.username}', 'database')">Профиль</button>
+        ${user.username === OWNER_USERNAME ? '<b>Владелец</b>' : `<button class="deleteBtn" onclick="deleteUser('${user.username}')">Удалить</button>`}
+      </div>
+    </div>
+  `).join("");
+};
+
+searchUser = async function(){
+  let q = searchUsername.value.trim();
+  let users = await loadUsersFromSupabase();
+
+  searchResultsBox.style.display = "block";
+  searchResults.innerHTML = "";
+
+  let found = users.find(u => u.username === q);
+
+  if(!found){
+    searchResults.innerHTML = "<p>Пользователь не найден.</p>";
+    return;
+  }
+
+  searchResults.innerHTML = `
+    <div class="friend">
+      <img src="${found.icon || 'jw.jpeg'}">
+      <h3>${found.name || 'Без имени'}</h3>
+      <p>${found.username}</p>
+      <p>${found.description || ""}</p>
+      <button onclick="openMyProfile(); openPublicProfile('${found.username}', 'profile')">Открыть профиль</button>
+      <button onclick="toggleFollow('${found.username}')">${isFollowing(localStorage.getItem("username") || "", found.username) ? "Вы подписаны" : "Подписаться"}</button>
+      <button onclick="openChat('${found.username}')">Написать</button>
+      ${isOwner() && found.username !== OWNER_USERNAME ? `<button class="deleteBtn" onclick="deleteUser('${found.username}')">Удалить аккаунт</button>` : ""}
+    </div>
+  `;
+};
+/* END SUPABASE ACCOUNT FIX */
+
+
+
+/* SHARED SUPABASE DATA FIX - follows, posts, likes, comments, replies, messages, search clear */
+const SUPABASE_STATE_TABLE = "NIARI_STATE";
+
+async function loadStateValue(key, fallback){
+  if(!window.supabase || !window.sb && typeof sb === "undefined") return fallback;
+  try{
+    const { data, error } = await sb
+      .from(SUPABASE_STATE_TABLE)
+      .select("value")
+      .eq("key", key)
+      .maybeSingle();
+
+    if(error){
+      console.warn("Supabase state load error:", key, error.message);
+      return fallback;
+    }
+
+    return data && data.value !== null && data.value !== undefined ? data.value : fallback;
+  }catch(error){
+    console.warn("Supabase state load catch:", key, error);
+    return fallback;
+  }
+}
+
+async function saveStateValue(key, value){
+  if(!window.supabase || !window.sb && typeof sb === "undefined") return;
+  try{
+    const { error } = await sb
+      .from(SUPABASE_STATE_TABLE)
+      .upsert([{ key:key, value:value }], { onConflict:"key" });
+
+    if(error) console.warn("Supabase state save error:", key, error.message);
+  }catch(error){
+    console.warn("Supabase state save catch:", key, error);
+  }
+}
+
+async function loadSharedDataFromSupabase(){
+  const loadedFollows = await loadStateValue("follows", JSON.parse(localStorage.getItem("follows") || "{}"));
+  const loadedPosts = await loadStateValue("postsArray", JSON.parse(localStorage.getItem("postsArray") || "[]"));
+  const loadedMessages = await loadStateValue("messagesArray", JSON.parse(localStorage.getItem("messagesArray") || "[]"));
+  const loadedDeleted = await loadStateValue("deletedUsers", JSON.parse(localStorage.getItem("deletedUsers") || "[]"));
+
+  localStorage.setItem("follows", JSON.stringify(loadedFollows || {}));
+  localStorage.setItem("postsArray", JSON.stringify(Array.isArray(loadedPosts) ? loadedPosts : []));
+  localStorage.setItem("messagesArray", JSON.stringify(Array.isArray(loadedMessages) ? loadedMessages : []));
+  localStorage.setItem("deletedUsers", JSON.stringify(Array.isArray(loadedDeleted) ? loadedDeleted : []));
+
+  if(typeof postsArray !== "undefined") postsArray = Array.isArray(loadedPosts) ? loadedPosts : [];
+  if(typeof messagesArray !== "undefined") messagesArray = Array.isArray(loadedMessages) ? loadedMessages : [];
+}
+
+function clearSearchResults(){
+  const box = document.getElementById("searchResultsBox");
+  if(box) box.style.display = "none";
+
+  const results = document.getElementById("searchResults");
+  if(results) results.innerHTML = "";
+
+  const input = document.getElementById("searchUsername");
+  if(input) input.value = "";
+}
+
+getFollows = function(){
+  return JSON.parse(localStorage.getItem("follows") || "{}");
+};
+
+saveFollows = function(follows){
+  localStorage.setItem("follows", JSON.stringify(follows || {}));
+  saveStateValue("follows", follows || {});
+};
+
+isFollowing = function(fromUser, toUser){
+  let follows = getFollows();
+  return !!(follows[fromUser] && follows[fromUser].includes(toUser));
+};
+
+areFriends = function(userA, userB){
+  return isFollowing(userA, userB) && isFollowing(userB, userA);
+};
+
+toggleFollow = async function(username){
+  let myUsername = localStorage.getItem("username") || "";
+
+  if(!myUsername){
+    alert("Сначала войди в профиль.");
+    return;
+  }
+
+  if(myUsername === username) return;
+
+  let users = await loadUsersFromSupabase();
+  if(!users.some(u => u.username === username)){
+    alert("Профиль не найден.");
+    await showFriend();
+    return;
+  }
+
+  let follows = getFollows();
+  if(!follows[myUsername]) follows[myUsername] = [];
+
+  if(follows[myUsername].includes(username)){
+    follows[myUsername] = follows[myUsername].filter(u => u !== username);
+  }else{
+    follows[myUsername].push(username);
+  }
+
+  saveFollows(follows);
+  updateFollowButton(username);
+  await showFriend();
+  showProfile();
+};
+
+toggleFollowPublic = async function(){
+  let username = document.getElementById("publicUsername").innerText;
+  await toggleFollow(username);
+};
+
+refreshPostsEverywhere = function(){
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+  saveStateValue("postsArray", postsArray);
+
+  showPosts();
+  showProfilePosts();
+
+  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
+    let username = publicUsername.innerText;
+    if(username) renderPublicPosts(username);
+  }
+};
+
+savePost = function(author, text, photo){
+  postsArray.push({
+    id:Date.now(),
+    author:author,
+    username:localStorage.getItem("username") || "",
+    text:text,
+    photo:photo,
+    likes:0,
+    likedBy:[],
+    comments:[]
+  });
+
+  if(document.getElementById("postName")) postName.value="";
+  if(document.getElementById("postText")) postText.value="";
+  if(document.getElementById("postPhoto")) postPhoto.value="";
+
+  refreshPostsEverywhere();
+};
+
+deletePost = function(id){
+  let post = postsArray.find(p => String(p.id) === String(id));
+  let myName = localStorage.getItem("name") || "Гость";
+  let myUsername = localStorage.getItem("username") || "";
+
+  if(!post) return;
+
+  if(post.author !== myName && post.username !== myUsername && !isOwner()){
+    alert("Можно удалять только свои записи.");
+    return;
+  }
+
+  postsArray = postsArray.filter(p => String(p.id) !== String(id));
+  refreshPostsEverywhere();
+};
+
+likePost = function(id){
+  let post = postsArray.find(p => String(p.id) === String(id));
+  if(!post) return;
+
+  let myUsername = localStorage.getItem("username") || "guest";
+  if(!post.likedBy) post.likedBy = [];
+
+  if(post.likedBy.includes(myUsername)){
+    post.likedBy = post.likedBy.filter(u => u !== myUsername);
+  }else{
+    post.likedBy.push(myUsername);
+  }
+
+  post.likes = post.likedBy.length;
+  refreshPostsEverywhere();
+};
+
+addComment = function(id){
+  let input = document.getElementById("comment-" + id);
+  let text = input ? input.value.trim() : "";
+  let nameValue = localStorage.getItem("name") || "Гость";
+  let usernameValue = localStorage.getItem("username") || "";
+  let iconValue = localStorage.getItem("icon") || "jw.jpeg";
+
+  if(text === "") return;
+
+  let post = postsArray.find(p => String(p.id) === String(id));
+  if(!post) return;
+  if(!post.comments) post.comments = [];
+
+  post.comments.push({
+    name:nameValue,
+    username:usernameValue,
+    icon:iconValue,
+    text:text,
+    replies:[]
+  });
+
+  input.value = "";
+  refreshPostsEverywhere();
+};
+
+addReply = function(postId, commentIndex){
+  let input = document.getElementById("reply-" + postId + "-" + commentIndex);
+  let text = input ? input.value.trim() : "";
+  let nameValue = localStorage.getItem("name") || "Гость";
+  let usernameValue = localStorage.getItem("username") || "";
+  let iconValue = localStorage.getItem("icon") || "jw.jpeg";
+
+  if(text === "") return;
+
+  let post = postsArray.find(p => String(p.id) === String(postId));
+  if(!post || !post.comments || !post.comments[commentIndex]) return;
+
+  if(!post.comments[commentIndex].replies) post.comments[commentIndex].replies = [];
+
+  post.comments[commentIndex].replies.push({
+    name:nameValue,
+    username:usernameValue,
+    icon:iconValue,
+    text:text
+  });
+
+  input.value = "";
+  refreshPostsEverywhere();
+};
+
+showFriend = async function(){
+  let myUsername = localStorage.getItem("username") || "";
+  let users = await loadUsersFromSupabase();
+  let friends = users.filter(u => u.username !== myUsername && areFriends(myUsername, u.username));
+
+  profileIcon.src = localStorage.getItem("icon") || "jw.jpeg";
+
+  if(!myUsername){
+    friendList.innerHTML = "Сначала войди в профиль, чтобы видеть друзей.";
+    return;
+  }
+
+  let friendsHTML = friends.length === 0
+    ? "<p>Пока нет друзей. Друг появится, когда вы подпишетесь друг на друга.</p>"
+    : friends.map(user => `
+      <div class="friend">
+        <img src="${user.icon || 'jw.jpeg'}">
+        <h3>${user.name || 'Без имени'}</h3>
+        <p>${user.username || ''}</p>
+        <div class="mutualBadge">вы друзья</div>
+        <button onclick="clearSearchResults(); openMyProfile(); openPublicProfile('${user.username}', 'profile')">Открыть профиль</button>
+        <button onclick="openChat('${user.username}')">Написать</button>
+      </div>
+    `).join("");
+
+  friendList.innerHTML = `
+    <div class="friendsSections">
+      <h3 class="friendsSubTitle">Мои друзья</h3>
+      <div class="friendsGrid">${friendsHTML}</div>
+    </div>
+  `;
+};
+
+openChat = function(friendName){
+  currentChatFriend = friendName;
+  clearSearchResults();
+  showTab("friends");
+  chatBox.style.display = "block";
+  chatTitle.innerText = "Чат с " + friendName;
+  showMessages();
+};
+
+sendMessage = function(){
+  let text = chatText.value.trim();
+  let myName = localStorage.getItem("username") || "Гость";
+
+  if(text === ""){
+    alert("Напиши сообщение");
+    return;
+  }
+
+  messagesArray.push({
+    id:Date.now(),
+    from:myName,
+    to:currentChatFriend,
+    text:text
+  });
+
+  localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
+  saveStateValue("messagesArray", messagesArray);
+
+  chatText.value="";
+  showMessages();
+};
+
+showMessages = function(){
+  messages.innerHTML="";
+  let myName = localStorage.getItem("username") || "Гость";
+
+  messagesArray.forEach(msg=>{
+    let isThisChat =
+      (msg.from === myName && msg.to === currentChatFriend) ||
+      (msg.from === currentChatFriend && msg.to === myName);
+
+    if(isThisChat){
+      let side = msg.from === myName ? "me" : "other";
+      messages.innerHTML += `
+        <div class="message ${side}">
+          <div>${escapeText(msg.text)}</div>
+        </div>
+      `;
+    }
+  });
+
+  messages.scrollTop = messages.scrollHeight;
+};
+
+renderPublicPosts = function(userOrUsername){
+  let box = document.getElementById("publicPosts");
+  if(!box) return;
+
+  let username = typeof userOrUsername === "string" ? userOrUsername : (userOrUsername.username || "");
+  let name = typeof userOrUsername === "string" ? "" : (userOrUsername.name || "");
+
+  box.innerHTML = "";
+
+  let userPosts = postsArray.filter(post =>
+    post.username === username || (name && post.author === name)
+  );
+
+  if(userPosts.length === 0){
+    box.innerHTML = "<p>Пока нет записей.</p>";
+    return;
+  }
+
+  userPosts.forEach(post=>{
+    box.innerHTML += createPostHTML(post);
+  });
+};
+
+showTab = function(id){
+  clearSearchResults();
+  document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  if(id === "friends") showFriend();
+};
+
+searchUser = async function(){
+  let q = searchUsername.value.trim();
+  let users = await loadUsersFromSupabase();
+
+  searchResultsBox.style.display = "block";
+  searchResults.innerHTML = "";
+
+  let found = users.find(u => u.username === q);
+
+  if(!found){
+    searchResults.innerHTML = "<p>Пользователь не найден.</p>";
+    return;
+  }
+
+  searchResults.innerHTML = `
+    <div class="friend">
+      <img src="${found.icon || 'jw.jpeg'}">
+      <h3>${found.name || 'Без имени'}</h3>
+      <p>${found.username}</p>
+      <p>${found.description || ""}</p>
+      <button onclick="clearSearchResults(); openMyProfile(); openPublicProfile('${found.username}', 'profile')">Открыть профиль</button>
+      <button onclick="toggleFollow('${found.username}')">${isFollowing(localStorage.getItem("username") || "", found.username) ? "Вы подписаны" : "Подписаться"}</button>
+      <button onclick="openChat('${found.username}')">Написать</button>
+      ${isOwner() && found.username !== OWNER_USERNAME ? `<button class="deleteBtn" onclick="deleteUser('${found.username}')">Удалить аккаунт</button>` : ""}
+    </div>
+  `;
+};
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  const profileButton = document.querySelector(".profile");
+  if(profileButton) profileButton.addEventListener("click", clearSearchResults, true);
+});
+/* END SHARED SUPABASE DATA FIX */
+
 fillSelects();
 renderStatusSelects();
 renderSongs();
 renderAlbums();
 cleanDeletedData();
-showFriend();
-showPosts();
-showMessages();
-updatePlayButtons();
-renderOwnerDatabase();
-chooseIcon(chosenIcon);
-chooseStatus(chosenStatus);
+
+(async()=>{
+  await loadSharedDataFromSupabase();
+  await loadUsersFromSupabase();
+  await showFriend();
+  showPosts();
+  showMessages();
+  updatePlayButtons();
+  await renderOwnerDatabase();
+  chooseIcon(chosenIcon);
+  chooseStatus(chosenStatus);
+})();
 </script>
 
 </body>
