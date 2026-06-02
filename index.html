@@ -1448,7 +1448,7 @@ h1,h2{
 const supabaseUrl = "https://gdmqanrkgxarxwdlxvtz.supabase.co";
 const supabaseKey = "sb_publishable_4Rll7JueMTvJhJvY7UPNZA_Dy6i2j9b";
 
-const sb = window.supabase.createClient(
+const supabase = window.supabase.createClient(
   supabaseUrl,
   supabaseKey
 );
@@ -1497,10 +1497,10 @@ if (enteredPassword !== sitePassword) {
 </header>
 
 <nav>
-<button onclick="clearSearchResults(); showTab('home')">главная</button>
-<button onclick="clearSearchResults(); showTab('enha')">энха</button>
-<button onclick="clearSearchResults(); showTab('posts')">записи</button>
-<button onclick="clearSearchResults(); showTab('friends')">друзья</button>
+  <button onclick="showTab('home')">главная</button>
+  <button onclick="showTab('enha')">энха</button>
+  <button onclick="showTab('posts')">записи</button>
+  <button onclick="showTab('friends')">друзья</button>
 
   <div class="searchBox">
     <input id="searchUsername" placeholder="найти по юзернейму">
@@ -1954,7 +1954,7 @@ async function loadUsersFromSupabase(){
   }
 
   try{
-    const { data, error } = await sb
+    const { data, error } = await supabase
       .from(SUPABASE_USERS_TABLE)
       .select("*")
       .order("created_at", { ascending:false });
@@ -1983,7 +1983,7 @@ async function saveUserToSupabase(user){
   try{
     const row = userToDbRow(user);
 
-    const { data:existing, error:selectError } = await sb
+    const { data:existing, error:selectError } = await supabase
       .from(SUPABASE_USERS_TABLE)
       .select("id")
       .eq("username", user.username)
@@ -1995,14 +1995,14 @@ async function saveUserToSupabase(user){
     }
 
     if(existing && existing.length > 0){
-      const { error:updateError } = await sb
+      const { error:updateError } = await supabase
         .from(SUPABASE_USERS_TABLE)
         .update(row)
         .eq("username", user.username);
 
       if(updateError) console.error("Supabase user update error:", updateError);
     }else{
-      const { error:insertError } = await sb
+      const { error:insertError } = await supabase
         .from(SUPABASE_USERS_TABLE)
         .insert([row]);
 
@@ -2017,7 +2017,7 @@ async function deleteUserFromSupabase(username){
   if(!window.supabase || !username) return;
 
   try{
-    const { error } = await sb
+    const { error } = await supabase
       .from(SUPABASE_USERS_TABLE)
       .delete()
       .eq("username", username);
@@ -3324,23 +3324,7 @@ function showMessages(){
   messages.scrollTop = messages.scrollHeight;
 }
 
-function clearSearchResults(){
-  searchResultsBox.style.display = "none";
-  searchResults.innerHTML = "";
-  searchUsername.value = "";
-}
-
 function showTab(id){
-
-const box = document.getElementById("searchResultsBox");
-if(box) box.style.display = "none";
-
-const results = document.getElementById("searchResults");
-if(results) results.innerHTML = "";
-
-const input = document.getElementById("searchUsername");
-if(input) input.value = "";
-
   document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("active"));
   document.getElementById(id).classList.add("active");
   if(id === "friends") showFriend();
@@ -3427,7 +3411,7 @@ function makeSupabaseUserRow(user){
 
 loadUsersFromSupabase = async function(){
   try{
-    const { data, error } = await sb
+    const { data, error } = await supabase
       .from("NIARI")
       .select("*");
 
@@ -3460,7 +3444,7 @@ saveUserToSupabase = async function(user){
 
     const row = makeSupabaseUserRow(user);
 
-    const { data: existing, error: checkError } = await sb
+    const { data: existing, error: checkError } = await supabase
       .from("NIARI")
       .select("id")
       .eq("username", user.username)
@@ -3473,7 +3457,7 @@ saveUserToSupabase = async function(user){
     }
 
     if(existing && existing.length > 0){
-      const { error: updateError } = await sb
+      const { error: updateError } = await supabase
         .from("NIARI")
         .update(row)
         .eq("username", user.username);
@@ -3484,7 +3468,7 @@ saveUserToSupabase = async function(user){
         return false;
       }
     }else{
-      const { error: insertError } = await sb
+      const { error: insertError } = await supabase
         .from("NIARI")
         .insert([row]);
 
@@ -3579,7 +3563,7 @@ loginProfile = async function(){
   let usernameValue = loginEnter.value.trim();
   let passwordValue = passwordEnter.value.trim();
 
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from("NIARI")
     .select("*")
     .eq("username", usernameValue)
@@ -3643,7 +3627,7 @@ renderOwnerDatabase = async function(){
     return;
   }
 
-  const { data, error } = await sb
+  const { data, error } = await supabase
     .from("NIARI")
     .select("*");
 
