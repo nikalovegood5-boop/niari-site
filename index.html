@@ -1497,10 +1497,10 @@ if (enteredPassword !== sitePassword) {
 </header>
 
 <nav>
-  <button onclick="showTab('home')">главная</button>
-  <button onclick="showTab('enha')">энха</button>
-  <button onclick="showTab('posts')">записи</button>
-  <button onclick="showTab('friends')">друзья</button>
+<button onclick="clearSearchResults(); showTab('home')">главная</button>
+<button onclick="clearSearchResults(); showTab('enha')">энха</button>
+<button onclick="clearSearchResults(); showTab('posts')">записи</button>
+<button onclick="clearSearchResults(); showTab('friends')">друзья</button>
 
   <div class="searchBox">
     <input id="searchUsername" placeholder="найти по юзернейму">
@@ -3324,7 +3324,23 @@ function showMessages(){
   messages.scrollTop = messages.scrollHeight;
 }
 
+function clearSearchResults(){
+  searchResultsBox.style.display = "none";
+  searchResults.innerHTML = "";
+  searchUsername.value = "";
+}
+
 function showTab(id){
+
+const box = document.getElementById("searchResultsBox");
+if(box) box.style.display = "none";
+
+const results = document.getElementById("searchResults");
+if(results) results.innerHTML = "";
+
+const input = document.getElementById("searchUsername");
+if(input) input.value = "";
+
   document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("active"));
   document.getElementById(id).classList.add("active");
   if(id === "friends") showFriend();
