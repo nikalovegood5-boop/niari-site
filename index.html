@@ -3718,7 +3718,10 @@ searchUser = async function(){
 /* SHARED SUPABASE TABLES FIX - posts, comments, likes, follows, messages, search clear */
 
 function getDbClient(){
-  return window.supabase && typeof supabase !== "undefined" ? supabase : null;
+  if(typeof sb !== "undefined" && sb && typeof sb.from === "function"){
+    return sb;
+  }
+  return null;
 }
 
 function safeId(){
