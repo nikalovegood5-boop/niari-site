@@ -1,0 +1,3399 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NIARI</title>
+<link rel="icon" type="image/png" href="niari.png">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  font-family:Arial,sans-serif;
+  background:url("bg.png") center top/cover fixed;
+  color:white;
+}
+
+.nowPlaying{
+  display:none;
+  position:fixed;
+  top:15px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#3d070d;
+  color:white;
+  padding:12px 25px;
+  border-radius:30px;
+  z-index:200;
+  min-width:300px;
+  text-align:center;
+}
+
+.topControls{display:none;margin-top:10px}
+.nowPlaying:hover .topControls{display:block}
+.topControls button{padding:8px 14px;margin:4px}
+.topControls input{width:170px}
+
+header{
+  display:flex;
+  justify-content:flex-end;
+  padding:25px 40px;
+}
+
+.profile{
+  width:78px;
+  height:78px;
+  border-radius:50%;
+  overflow:hidden;
+  border:3px solid white;
+  cursor:pointer;
+  background:white;
+  transition:.2s;
+}
+
+.profile:hover{
+  box-shadow:0 0 18px #ffb6c8;
+  transform:scale(1.06);
+}
+
+.profile:active{
+  transform:scale(.92);
+  box-shadow:0 0 25px white;
+}
+
+.profile img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+nav{
+  text-align:center;
+  margin-bottom:25px;
+}
+
+button{
+  padding:13px 30px;
+  margin:10px;
+  border:none;
+  border-radius:30px;
+  background:white;
+  color:#6f1f2c;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.searchBox{
+  display:inline-flex;
+  gap:8px;
+  align-items:center;
+  background:rgba(255,255,255,.2);
+  padding:8px;
+  border-radius:30px;
+}
+
+.searchBox input{
+  border:none;
+  border-radius:20px;
+  padding:12px;
+  outline:none;
+}
+
+.box{
+  max-width:1200px;
+  margin:30px auto;
+  padding:25px;
+  background:rgba(255,255,255,.15);
+  backdrop-filter:blur(10px);
+  border-radius:30px;
+}
+
+.tab{display:none}
+.tab.active{display:block}
+
+.passwordBox{
+  position:relative;
+}
+
+.passwordBox input{
+  padding-right:70px;
+}
+
+.eyeBtn{
+  position:absolute;
+  right:5px;
+  top:2px;
+  padding:10px 14px;
+  margin:0;
+}
+
+.profilePage{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:100;
+  background:url("bg.png") center/cover fixed;
+  overflow-y:auto;
+  padding:35px 20px;
+}
+
+.profileOverlay{
+  min-height:100%;
+  background:rgba(0,0,0,.35);
+  border-radius:35px;
+  max-width:950px;
+  margin:auto;
+  padding:30px;
+}
+
+.profilePanel{
+  position:relative;
+  background:rgba(255,255,255,.92);
+  color:#333;
+  border-radius:35px;
+  padding:35px;
+  text-align:center;
+}
+
+.backBtn{
+  position:absolute;
+  top:20px;
+  left:20px;
+  background:#333;
+  color:white;
+  padding:10px 18px;
+}
+
+.editBtn{
+  position:absolute;
+  top:20px;
+  right:20px;
+  background:#7b1624;
+  color:white;
+}
+
+.profilePanel input,
+.profilePanel select,
+.profilePanel textarea{
+  width:100%;
+  padding:14px;
+  margin:10px 0;
+  border:none;
+  border-radius:18px;
+  background:#eee;
+}
+
+.profilePanel textarea{
+  height:95px;
+  resize:none;
+}
+
+.logoutBtn{
+  background:#8b0000;
+  color:white;
+}
+
+.bigAvatar{
+  width:145px;
+  height:145px;
+  border-radius:50%;
+  object-fit:cover;
+  border:5px solid white;
+  margin-bottom:15px;
+  transition:.2s;
+  cursor:pointer;
+}
+
+.bigAvatar:hover{
+  box-shadow:0 0 20px #ffb6c8;
+  transform:scale(1.05);
+}
+
+.bigAvatar:active{
+  transform:scale(.92);
+  box-shadow:0 0 25px white;
+}
+
+.nameWithStatus{
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  gap:8px;
+  margin-bottom:12px;
+}
+
+.statusIcon{
+  width:42px;
+  height:42px;
+  object-fit:contain;
+  margin-top:-10px;
+  transition:.3s;
+  cursor:pointer;
+}
+
+.statusIcon:hover{
+  filter:drop-shadow(0 0 12px #ffb6c8);
+  transform:scale(1.15);
+}
+
+.statusIcon:active{
+  transform:scale(.9);
+  filter:drop-shadow(0 0 18px white);
+}
+
+.profileInfo{
+  margin-top:15px;
+  line-height:1.8;
+}
+
+.profileCards{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+  flex-wrap:wrap;
+  margin:20px 0;
+}
+
+.profileMiniCard{
+  background:#f1f1f1;
+  padding:15px;
+  border-radius:22px;
+  width:180px;
+}
+
+.profileMiniCard img{
+  width:100%;
+  height:140px;
+  object-fit:cover;
+  border-radius:18px;
+}
+
+.profileSongBox{
+  background:#f1f1f1;
+  border-radius:22px;
+  padding:15px;
+  margin:15px auto;
+  max-width:420px;
+}
+
+.icons img{
+  width:75px;
+  height:75px;
+  object-fit:cover;
+  border-radius:20px;
+  margin:5px;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.icons img:hover{
+  box-shadow:0 0 14px #7b1624;
+  transform:scale(1.06);
+}
+
+.icons img.selected,
+.statusItem.selected{
+  box-shadow:0 0 18px #ffb6c8;
+  border:3px solid #ffb6c8;
+  transform:scale(1.08);
+}
+
+.statusSelect{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-top:15px;
+}
+
+.statusItem{
+  background:#f1f1f1;
+  border-radius:20px;
+  padding:10px;
+  cursor:pointer;
+  text-align:center;
+  transition:.2s;
+}
+
+.statusItem img{
+  width:60px;
+  height:60px;
+  object-fit:contain;
+}
+
+.statusItem:hover{
+  box-shadow:0 0 14px #ffb6c8;
+  transform:scale(1.04);
+}
+
+.members{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:25px;
+}
+
+.card{position:relative}
+
+.card img{
+  width:100%;
+  height:250px;
+  object-fit:cover;
+  border-radius:28px;
+}
+
+.info{
+  display:none;
+  position:absolute;
+  bottom:12px;
+  left:12px;
+  right:12px;
+  background:rgba(0,0,0,.8);
+  border-radius:15px;
+  padding:10px;
+  text-align:center;
+}
+
+.card:hover .info{display:block}
+.card:nth-child(5){grid-column:2}
+
+.discography{margin-top:45px}
+
+.discoGrid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:20px;
+}
+
+.album{
+  position:relative;
+  overflow:hidden;
+  border-radius:25px;
+  aspect-ratio:1/1;
+}
+
+.album img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:25px;
+}
+
+.albumInfo{
+  display:none;
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,.75);
+  color:white;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:15px;
+  font-weight:bold;
+  line-height:1.5;
+}
+
+.album:hover .albumInfo{display:flex}
+
+.albumArrow{
+  margin-top:10px;
+  background:white;
+  color:#3d070d;
+  padding:8px 14px;
+}
+
+.albumModal{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.75);
+  z-index:300;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+}
+
+.albumModalBox{
+  background:white;
+  color:#333;
+  max-width:480px;
+  width:100%;
+  border-radius:30px;
+  padding:25px;
+  text-align:center;
+  position:relative;
+  max-height:90vh;
+  overflow-y:auto;
+}
+
+.albumModalBox img{
+  width:220px;
+  height:220px;
+  object-fit:cover;
+  border-radius:25px;
+  margin-bottom:15px;
+}
+
+.albumClose{
+  position:absolute;
+  top:10px;
+  right:10px;
+  background:#7b1624;
+  color:white;
+  padding:8px 14px;
+}
+
+.albumModalBox ol{
+  text-align:left;
+  margin-left:30px;
+  margin-top:10px;
+}
+
+.postInput{
+  background:white;
+  color:#333;
+  padding:20px;
+  border-radius:25px;
+  margin-bottom:20px;
+}
+
+.postInput input,
+.postInput textarea{
+  width:100%;
+  border:none;
+  background:#f1f1f1;
+  border-radius:18px;
+  padding:13px;
+  margin-bottom:10px;
+}
+
+.postInput textarea{
+  height:120px;
+  resize:none;
+}
+
+.post{
+  background:white;
+  color:#333;
+  border-radius:25px;
+  padding:18px;
+  margin:15px 0;
+}
+
+.postName{
+  color:#7b1624;
+  font-weight:bold;
+  margin-bottom:8px;
+}
+
+.post img{
+  width:100%;
+  max-height:420px;
+  object-fit:cover;
+  border-radius:20px;
+  margin:10px 0;
+}
+
+.likeBtn{
+  background:#7b1624;
+  color:white;
+}
+
+.comment{
+  background:#f1f1f1;
+  border-radius:15px;
+  padding:8px;
+  margin-top:8px;
+}
+
+.friendsGrid{
+  display:flex;
+  gap:15px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+
+.friend{
+  background:white;
+  color:#333;
+  padding:18px;
+  border-radius:25px;
+  width:240px;
+  text-align:center;
+}
+
+.friend img{
+  width:90px;
+  height:90px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+.chatBox{
+  display:none;
+  background:white;
+  color:#333;
+  border-radius:30px;
+  padding:20px;
+  max-width:800px;
+  margin:25px auto;
+}
+
+.messages{
+  height:360px;
+  overflow-y:auto;
+  background:#f1f1f1;
+  border-radius:25px;
+  padding:15px;
+}
+
+.message{
+  max-width:75%;
+  padding:11px 15px;
+  border-radius:20px;
+  margin-bottom:12px;
+}
+
+.me{
+  background:#7b1624;
+  color:white;
+  margin-left:auto;
+}
+
+.other{
+  background:white;
+  color:#333;
+}
+
+.slider{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:20px;
+}
+
+.slider img{
+  width:75%;
+  max-height:500px;
+  object-fit:cover;
+  border-radius:30px;
+}
+
+.arrow{
+  width:55px;
+  height:55px;
+  border-radius:50%;
+  font-size:25px;
+  padding:0;
+}
+
+.playlist{
+  display:flex;
+  justify-content:center;
+  gap:30px;
+  flex-wrap:wrap;
+}
+
+.coverBlock{
+  text-align:center;
+}
+
+.coverWrap{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+}
+
+.verticalVolume{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  background:#3d070d;
+  padding:12px 8px;
+  border-radius:25px;
+}
+
+.verticalVolume span{
+  font-size:20px;
+}
+
+.verticalVolume input{
+  writing-mode:bt-lr;
+  appearance:slider-vertical;
+  width:25px;
+  height:170px;
+}
+
+.playlist img{
+  width:330px;
+  height:330px;
+  object-fit:cover;
+  border-radius:30px;
+}
+
+.coverControls{
+  text-align:center;
+  margin-top:10px;
+  transform:translateX(28px);
+}
+
+.coverControls button{
+  padding:10px 18px;
+  margin:5px;
+}
+
+.songs{
+  background:#3d070d;
+  width:420px;
+  height:330px;
+  border-radius:30px;
+  padding:18px;
+  overflow-y:auto;
+}
+
+.song{
+  margin-bottom:15px;
+  padding:10px;
+  border-radius:18px;
+}
+
+.song:hover{
+  background:rgba(255,255,255,.12);
+}
+
+.song p{
+  margin-bottom:6px;
+  font-weight:bold;
+  font-size:14px;
+}
+
+audio{
+  width:100%;
+  height:34px;
+}
+
+h1,h2{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+
+.ownerDbBtn{
+  position:absolute;
+  top:75px;
+  right:28px;
+  background:transparent;
+  color:#7b1624;
+  padding:4px 8px;
+  margin:0;
+  font-size:12px;
+  border-radius:10px;
+  box-shadow:none;
+}
+
+.ownerDbBtn:hover{
+  text-decoration:underline;
+  background:transparent;
+}
+
+.ownerDbPanel{
+  background:rgba(255,255,255,.92);
+  color:#333;
+  border-radius:30px;
+  padding:25px;
+}
+
+.ownerDbGrid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin-top:18px;
+}
+
+.ownerDbCard{
+  background:#f3f3f3;
+  color:#333;
+  border-radius:18px;
+  padding:10px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  text-align:left;
+}
+
+.ownerDbCard img{
+  width:55px;
+  height:55px;
+  object-fit:cover;
+  border-radius:50%;
+}
+
+.ownerDbInfo{
+  flex:1;
+  font-size:12px;
+  line-height:1.35;
+}
+
+.ownerDbActions{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+
+.ownerSmallBtn,
+.deleteBtn{
+  padding:7px 10px;
+  margin:0;
+  font-size:11px;
+  border-radius:14px;
+}
+
+.deleteBtn{
+  background:#8b0000;
+  color:white;
+}
+
+.ownerSelectedProfile{
+  margin-top:20px;
+  background:#f7f7f7;
+  border-radius:22px;
+  padding:18px;
+  text-align:center;
+}
+
+.ownerSelectedProfile img{
+  width:95px;
+  height:95px;
+  object-fit:cover;
+  border-radius:50%;
+  margin-bottom:10px;
+}
+
+.myPostsHeader{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+}
+
+.plusPostBtn{
+  position:absolute;
+  right:5px;
+  top:-5px;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  padding:0;
+  margin:0;
+  font-size:22px;
+  line-height:34px;
+  background:white;
+  color:#7b1624;
+}
+
+.profilePostBox{
+  display:none;
+  background:white;
+  color:#333;
+  border-radius:25px;
+  padding:18px;
+  margin-bottom:18px;
+}
+
+.profilePostBox textarea{
+  width:100%;
+  height:100px;
+  border:none;
+  background:#f1f1f1;
+  border-radius:18px;
+  padding:13px;
+  resize:none;
+  margin-bottom:10px;
+}
+
+.profilePostBox input{
+  width:100%;
+  margin-bottom:10px;
+}
+
+@media(max-width:700px){
+  body{
+    background-size:cover;
+    overflow-x:hidden;
+  }
+
+  header{padding:15px}
+
+  .profile{
+    width:65px;
+    height:65px;
+  }
+
+  nav{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:5px;
+    padding:0 10px;
+  }
+
+  nav button{
+    padding:10px 16px;
+    font-size:12px;
+    margin:3px;
+  }
+
+  .searchBox{
+    width:100%;
+    flex-direction:column;
+    margin-top:10px;
+  }
+
+  .searchBox input{
+    width:100%;
+  }
+
+  .box{
+    width:92%;
+    padding:16px;
+    margin:20px auto;
+    border-radius:25px;
+  }
+
+  h1{font-size:24px}
+  h2{font-size:20px}
+
+  .slider{gap:8px}
+
+  .slider img{
+    width:72%;
+    max-height:250px;
+    border-radius:20px;
+  }
+
+  .arrow{
+    width:42px;
+    height:42px;
+    font-size:18px;
+  }
+
+  .playlist{
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .playlist img{
+    width:240px;
+    height:240px;
+    border-radius:22px;
+  }
+
+  .coverWrap{gap:8px}
+
+  .verticalVolume input{
+    height:130px;
+  }
+
+  .coverControls{
+    transform:translateX(18px);
+  }
+
+  .songs{
+    width:100%;
+    height:300px;
+    border-radius:25px;
+  }
+
+  .nowPlaying{
+    width:92%;
+    min-width:auto;
+    font-size:12px;
+    padding:12px;
+  }
+
+  .topControls input{
+    width:120px;
+  }
+
+  .profileOverlay{padding:15px}
+
+  .profilePanel{
+    padding:22px 14px;
+    border-radius:25px;
+  }
+
+  .bigAvatar{
+    width:110px;
+    height:110px;
+  }
+
+  .profileCards{
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .profileMiniCard{
+    width:100%;
+    max-width:250px;
+  }
+
+  .profileMiniCard img{
+    height:180px;
+  }
+
+  .statusSelect{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .members,
+  .discoGrid{
+    grid-template-columns:repeat(2,1fr);
+    gap:15px;
+  }
+
+  .card img{
+    height:180px;
+    border-radius:18px;
+  }
+
+  .card:nth-child(5){
+    grid-column:auto;
+  }
+
+  .albumModalBox img{
+    width:180px;
+    height:180px;
+  }
+
+  .friendsGrid{
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .friend{
+    width:100%;
+    max-width:280px;
+  }
+
+  .messages{
+    height:280px;
+  }
+
+  .message{
+    max-width:85%;
+    font-size:14px;
+  }
+
+  .ownerDbBtn{
+    top:54px;
+    right:18px;
+    font-size:11px;
+  }
+
+  .ownerDbGrid{
+    grid-template-columns:1fr;
+  }
+
+  .ownerDbCard{
+    align-items:flex-start;
+  }
+}
+
+/* mobile fixes added */
+.publicProfilePage{
+  display:none;
+}
+
+.publicProfilePanel{
+  position:relative;
+  background:rgba(255,255,255,.92);
+  color:#333;
+  border-radius:35px;
+  padding:35px;
+  text-align:center;
+}
+
+.profileFriendsBox{
+  display:none;
+  background:#f1f1f1;
+  color:#333;
+  border-radius:25px;
+  padding:15px;
+  margin:15px 0;
+}
+
+.profileFriendItem{
+  background:white;
+  border-radius:18px;
+  padding:12px;
+  margin:10px 0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  text-align:left;
+}
+
+.profileFriendItem img{
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+.profileFriendMain{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex:1;
+}
+
+.friendProfileBtn{
+  background:#7b1624;
+  color:white;
+  padding:8px 14px;
+  margin:0;
+  font-size:12px;
+}
+
+@media(max-width:700px){
+  body.musicPlaying header{
+    margin-top:82px;
+  }
+
+  body.musicPlaying nav{
+    margin-top:8px;
+  }
+
+  .nowPlaying{
+    top:8px;
+    z-index:500;
+  }
+
+  .nowPlaying .topControls{
+    display:block;
+  }
+
+  .topControls{
+    margin-top:8px;
+  }
+
+  .topControls button{
+    padding:7px 10px;
+    margin:2px;
+  }
+
+  header{
+    justify-content:flex-end;
+    padding-top:15px;
+    padding-right:15px;
+  }
+
+  .slider{
+    position:relative;
+    width:100%;
+    gap:0;
+  }
+
+  .slider img{
+    width:100%;
+    max-height:none;
+    height:auto;
+    object-fit:contain;
+    border-radius:22px;
+  }
+
+  .slider .arrow{
+    position:absolute;
+    z-index:5;
+    background:rgba(255,255,255,.9);
+  }
+
+  .slider .arrow:first-child{
+    left:6px;
+  }
+
+  .slider .arrow:last-child{
+    right:6px;
+  }
+
+  .playlist{
+    flex-direction:row;
+    align-items:flex-start;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:nowrap;
+  }
+
+  .coverBlock{
+    width:42%;
+    min-width:130px;
+  }
+
+  .coverWrap{
+    align-items:center;
+    gap:6px;
+  }
+
+  .playlist img{
+    width:100%;
+    height:auto;
+    aspect-ratio:1/1;
+    border-radius:18px;
+  }
+
+  .verticalVolume{
+    padding:8px 5px;
+    border-radius:18px;
+  }
+
+  .verticalVolume input{
+    height:105px;
+    width:18px;
+  }
+
+  .coverControls{
+    transform:none;
+    display:flex;
+    justify-content:center;
+    gap:4px;
+  }
+
+  .coverControls button{
+    padding:8px 10px;
+    margin:3px 0;
+    font-size:12px;
+  }
+
+  .songs{
+    width:58%;
+    height:260px;
+    padding:12px;
+    border-radius:20px;
+  }
+
+  .song{
+    padding:7px;
+    margin-bottom:10px;
+  }
+
+  .song p{
+    font-size:12px;
+  }
+
+  audio{
+    height:30px;
+  }
+
+  .profilePage{
+    padding:12px 8px;
+  }
+
+  .profileOverlay{
+    padding:10px;
+    border-radius:22px;
+  }
+
+  .profilePanel,
+  .publicProfilePanel,
+  .ownerDbPanel{
+    padding:70px 12px 18px;
+    border-radius:24px;
+  }
+
+  .backBtn{
+    top:14px;
+    left:12px;
+    padding:9px 14px;
+    margin:0;
+  }
+
+  .editBtn{
+    top:14px;
+    right:12px;
+    padding:9px 14px;
+    margin:0;
+    font-size:12px;
+  }
+
+  .ownerDbBtn{
+    top:52px;
+    right:16px;
+  }
+
+  .profileFriendItem{
+    flex-direction:column;
+    align-items:stretch;
+    text-align:center;
+  }
+
+  .profileFriendMain{
+    justify-content:center;
+  }
+}
+
+@media(max-width:430px){
+  .playlist{
+    gap:7px;
+  }
+
+  .coverBlock{
+    width:40%;
+  }
+
+  .songs{
+    width:60%;
+    height:235px;
+  }
+
+  .verticalVolume{
+    display:none;
+  }
+
+  .coverControls button{
+    padding:7px 8px;
+    font-size:11px;
+  }
+}
+
+
+
+
+.followBtn,
+.openFriendsTabBtn{
+  background:#7b1624;
+  color:white;
+  padding:10px 18px;
+  margin:8px 0 12px;
+  border-radius:25px;
+}
+
+.friendsSections{
+  display:flex;
+  flex-direction:column;
+  gap:22px;
+}
+
+.friendsSubTitle{
+  text-align:center;
+  margin-bottom:10px;
+}
+
+.mutualBadge{
+  color:#7b1624;
+  font-weight:bold;
+  margin:6px 0;
+}
+
+/* final mobile profile/database fixes */
+.profileFriendsBtn{
+  background:transparent;
+  color:inherit;
+  padding:0;
+  margin:0;
+  font:inherit;
+  font-weight:normal;
+  border-radius:0;
+  text-decoration:none;
+}
+
+.profileFriendsBtn:hover{
+  text-decoration:underline;
+  background:transparent;
+}
+
+@media(max-width:700px){
+  header{
+    justify-content:flex-end !important;
+  }
+
+  body.musicPlaying .profilePage{
+    padding-top:95px;
+  }
+
+  body.musicPlaying .profileOverlay{
+    margin-top:0;
+  }
+
+  body.musicPlaying .profilePanel,
+  body.musicPlaying .publicProfilePanel,
+  body.musicPlaying .ownerDbPanel{
+    margin-top:8px;
+  }
+
+  body.musicPlaying header{
+    margin-top:82px;
+  }
+}
+
+
+/* comment reply/avatar fixes */
+.postAuthorRow,
+.commentTop,
+.replyTop{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:8px;
+}
+
+.postUserAvatar,
+.commentAvatar,
+.replyAvatar{
+  width:34px !important;
+  height:34px !important;
+  border-radius:50% !important;
+  object-fit:cover !important;
+  margin:0 !important;
+  cursor:pointer;
+}
+
+.postAuthorName,
+.commentName,
+.replyName{
+  color:#7b1624;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.replyBox{
+  margin-left:42px;
+  margin-top:8px;
+}
+
+.reply{
+  background:#fafafa;
+  border-radius:14px;
+  padding:8px;
+  margin-top:7px;
+}
+
+.replyInputRow,
+.commentInputRow{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+
+.replyInputRow input,
+.commentInputRow input{
+  flex:1;
+  min-width:160px;
+  padding:10px;
+  border-radius:14px;
+  border:1px solid #ddd;
+}
+
+.replyBtn,
+.commentSendBtn{
+  padding:9px 14px;
+  margin:0;
+  font-size:12px;
+}
+
+@media(max-width:700px){
+  body.musicPlaying .profilePage{
+    padding-top:132px !important;
+  }
+
+  body.musicPlaying .profilePanel,
+  body.musicPlaying .publicProfilePanel,
+  body.musicPlaying .ownerDbPanel{
+    margin-top:12px !important;
+  }
+
+  .postUserAvatar,
+  .commentAvatar,
+  .replyAvatar{
+    width:30px !important;
+    height:30px !important;
+  }
+
+  .replyBox{
+    margin-left:20px;
+  }
+}
+
+
+/* owner database mobile back button */
+.ownerDbPanel{
+  position:relative;
+}
+
+@media(max-width:700px){
+
+  body.musicPlaying #ownerDatabasePage .ownerDbPanel{
+    position:relative !important;
+    padding-top:95px !important;
+  }
+
+  body.musicPlaying #ownerDatabasePage .backBtn{
+    position:absolute !important;
+    top:20px !important;
+    left:18px !important;
+    z-index:999 !important;
+    display:block !important;
+  }
+
+}
+
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<script>
+const supabaseUrl = "https://gdmqanrkgxarxwdlxvtz.supabase.co";
+const supabaseKey = "sb_publishable_4Rll7JueMTvJhJvY7UPNZA_Dy6i2j9b";
+
+const supabase = window.supabase.createClient(
+  supabaseUrl,
+  supabaseKey
+);
+</script>
+
+</head>
+
+<body>
+  <script>
+const sitePassword = "enha7";
+const enteredPassword = prompt("Введите пароль:");
+
+if (enteredPassword !== sitePassword) {
+  document.body.innerHTML = `
+  <div style="
+    background:black;
+    color:white;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:30px;
+    font-family:Arial;
+  ">
+    Неверный пароль
+  </div>
+  `;
+  throw new Error("Wrong password");
+}
+</script>
+
+<div class="nowPlaying" id="nowPlaying">
+  <span id="nowPlayingText">Сейчас играет:</span>
+  <div class="topControls">
+    <button onclick="playPreviousSong()">←</button>
+    <button id="topPlayBtn" onclick="toggleTopPlay()">▶</button>
+    <button onclick="playNextSong()">→</button>
+    <input type="range" id="topSeek" value="0" min="0" max="100">
+  </div>
+</div>
+
+<header>
+  <div class="profile" onclick="openMyProfile()">
+    <img id="profileIcon" src="jw.jpeg">
+  </div>
+</header>
+
+<nav>
+  <button onclick="showTab('home')">главная</button>
+  <button onclick="showTab('enha')">энха</button>
+  <button onclick="showTab('posts')">записи</button>
+  <button onclick="showTab('friends')">друзья</button>
+
+  <div class="searchBox">
+    <input id="searchUsername" placeholder="найти по юзернейму">
+    <button onclick="searchUser()">искать</button>
+  </div>
+</nav>
+
+<div class="box" id="searchResultsBox" style="display:none;">
+  <h2>Результат поиска</h2>
+  <div class="friendsGrid" id="searchResults"></div>
+</div>
+
+<div class="profilePage" id="profilePage">
+  <div class="profileOverlay">
+
+    <div id="registerBlock">
+      <div class="profilePanel">
+        <button class="backBtn" onclick="closeProfile()">←</button>
+
+        <h2>Вход</h2>
+
+        <input id="loginEnter" placeholder="юзернейм">
+
+        <div class="passwordBox">
+          <input id="passwordEnter" type="password" placeholder="пароль">
+          <button class="eyeBtn" onclick="togglePassword('passwordEnter')">👁</button>
+        </div>
+
+        <button onclick="loginProfile()">Войти</button>
+
+        <hr style="margin:25px 0;">
+
+        <h2>Регистрация</h2>
+
+        <input id="displayName" placeholder="твоё имя">
+        <input id="username" placeholder="придумай юзернейм, например @enhy7">
+
+        <div class="passwordBox">
+          <input id="password" type="password" placeholder="придумай пароль">
+          <button class="eyeBtn" onclick="togglePassword('password')">👁</button>
+        </div>
+
+        <p>Выбери аватарку:</p>
+
+        <div class="icons">
+          <img src="jw.jpeg" onclick="chooseIcon('jw.jpeg')">
+          <img src="hs.jpeg" onclick="chooseIcon('hs.jpeg')">
+          <img src="jy.jpeg" onclick="chooseIcon('jy.jpeg')">
+          <img src="jk.jpeg" onclick="chooseIcon('jk.jpeg')">
+          <img src="sh.jpeg" onclick="chooseIcon('sh.jpeg')">
+          <img src="sn.jpeg" onclick="chooseIcon('sn.jpeg')">
+          <img src="rk.jpeg" onclick="chooseIcon('rk.jpeg')">
+        </div>
+
+        <select id="bias"></select>
+        <select id="biasWrecker"></select>
+        <select id="favSong"></select>
+
+        <textarea id="description" placeholder="Описание профиля"></textarea>
+
+        <h3>Выбери статус</h3>
+        <div class="statusSelect" id="registerStatusSelect"></div>
+
+        <button onclick="registerProfile()">Зарегистрироваться</button>
+      </div>
+    </div>
+
+    <div id="profileBlock" style="display:none;">
+      <div class="profilePanel">
+        <button class="backBtn" onclick="closeProfile()">←</button>
+        <button class="editBtn" onclick="openSettings()">Изменить</button>
+        <button id="ownerDbOpenBtn" class="ownerDbBtn" onclick="openOwnerDatabase()" style="display:none;">база данных</button>
+
+        <img id="bigAvatar" class="bigAvatar" src="jw.jpeg">
+
+        <div class="nameWithStatus">
+          <h2 id="profileName">Профиль</h2>
+          <img id="profileStatus" class="statusIcon" src="chibijungwon.png">
+        </div>
+
+        <div class="profileInfo">
+          <p id="profileUsername"></p>
+          <p id="profileBirthday"></p>
+          <p id="profileDescription"></p>
+          <p id="profileFriendsCount"></p>
+          <p id="profileLastSong"></p>
+        </div>
+
+        <div class="profileCards">
+          <div class="profileMiniCard">
+            <h3>Биас</h3>
+            <img id="biasPhoto" src="jw.jpeg">
+            <p id="profileBias"></p>
+          </div>
+
+          <div class="profileMiniCard">
+            <h3>Биас врекер</h3>
+            <img id="biasWreckerPhoto" src="jw.jpeg">
+            <p id="profileBiasWrecker"></p>
+          </div>
+        </div>
+
+        <div class="profileSongBox">
+          <h3>Любимая песня</h3>
+          <p id="profileSong"></p>
+          <audio id="profileSongAudio" controls></audio>
+        </div>
+
+        <div class="profileFriendsBox" id="profileFriendsBox"></div>
+
+        <button class="logoutBtn" onclick="logoutProfile()">Выйти</button>
+      </div>
+
+      <div class="box">
+        <div class="myPostsHeader">
+          <h2>Мои записи</h2>
+          <button class="plusPostBtn" onclick="toggleProfilePostBox()">+</button>
+        </div>
+
+        <div class="profilePostBox" id="profilePostBox">
+          <textarea id="profilePostText" placeholder="Напиши запись в свой профиль..."></textarea>
+          <input id="profilePostPhoto" type="file" accept="image/*">
+          <button onclick="addProfilePost()">Опубликовать</button>
+        </div>
+
+        <div id="profilePosts"></div>
+      </div>
+    </div>
+
+
+    <div id="publicProfilePage" class="publicProfilePage">
+      <div class="publicProfilePanel">
+        <button class="backBtn" onclick="backFromPublicProfile()">←</button>
+
+        <img id="publicAvatar" class="bigAvatar" src="jw.jpeg">
+
+        <div class="nameWithStatus">
+          <h2 id="publicName">Профиль</h2>
+          <img id="publicStatus" class="statusIcon" src="chibijungwon.png">
+        </div>
+
+        <div class="profileInfo">
+          <p id="publicUsername"></p>
+          <button id="followBtn" class="followBtn" onclick="toggleFollowPublic()">Подписаться</button>
+          <p id="publicBirthday"></p>
+          <p id="publicDescription"></p>
+          <p id="publicLastSong"></p>
+        </div>
+
+        <div class="profileCards">
+          <div class="profileMiniCard">
+            <h3>Биас</h3>
+            <img id="publicBiasPhoto" src="jw.jpeg">
+            <p id="publicBias"></p>
+          </div>
+
+          <div class="profileMiniCard">
+            <h3>Биас врекер</h3>
+            <img id="publicBiasWreckerPhoto" src="jw.jpeg">
+            <p id="publicBiasWrecker"></p>
+          </div>
+        </div>
+
+        <div class="profileSongBox">
+          <h3>Любимая песня</h3>
+          <p id="publicSong"></p>
+          <audio id="publicSongAudio" controls></audio>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2 id="publicPostsTitle">Записи</h2>
+        <div id="publicPosts"></div>
+      </div>
+    </div>
+
+    <div id="ownerDatabasePage" style="display:none;">
+      <div class="ownerDbPanel">
+        <button class="backBtn" onclick="backFromOwnerDatabase()">←</button>
+        <h2>База данных сайта</h2>
+        <p>Доступ есть только у владельца сайта.</p>
+        <div id="ownerSelectedProfile" class="ownerSelectedProfile" style="display:none;"></div>
+        <div id="ownerUsersList" class="ownerDbGrid"></div>
+      </div>
+    </div>
+
+    <div id="settingsBlock" style="display:none;">
+      <div class="profilePanel">
+        <button class="backBtn" onclick="backToProfile()">←</button>
+
+        <h2>Настройки профиля</h2>
+
+        <input id="name" placeholder="Новое имя">
+        <input id="editUsername" placeholder="Новый юзернейм">
+
+        <div class="passwordBox">
+          <input id="editPassword" type="password" placeholder="Новый пароль">
+          <button class="eyeBtn" onclick="togglePassword('editPassword')">👁</button>
+        </div>
+
+        <input id="birthday" type="date">
+
+        <select id="editBias"></select>
+        <select id="editBiasWrecker"></select>
+        <select id="editFavSong"></select>
+
+        <textarea id="editDescription" placeholder="Новое описание"></textarea>
+
+        <p>Выбери иконку:</p>
+
+        <div class="icons">
+          <img src="jw.jpeg" onclick="chooseIcon('jw.jpeg')">
+          <img src="hs.jpeg" onclick="chooseIcon('hs.jpeg')">
+          <img src="jy.jpeg" onclick="chooseIcon('jy.jpeg')">
+          <img src="jk.jpeg" onclick="chooseIcon('jk.jpeg')">
+          <img src="sh.jpeg" onclick="chooseIcon('sh.jpeg')">
+          <img src="sn.jpeg" onclick="chooseIcon('sn.jpeg')">
+          <img src="rk.jpeg" onclick="chooseIcon('rk.jpeg')">
+        </div>
+
+        <h3>Изменить статус</h3>
+        <div class="statusSelect" id="editStatusSelect"></div>
+
+        <button onclick="saveProfile()">Сохранить</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="albumModal" id="albumModal">
+  <div class="albumModalBox">
+    <button class="albumClose" onclick="closeAlbum()">×</button>
+    <img id="modalAlbumImg" src="">
+    <h2 id="modalAlbumTitle"></h2>
+    <p id="modalAlbumDate"></p>
+    <h3>Треклист</h3>
+    <ol id="modalTracklist"></ol>
+  </div>
+</div>
+
+<div class="box tab active" id="home">
+  <div class="slider">
+    <button class="arrow" onclick="prevSlide()">←</button>
+    <img id="slide" src="enhy1.jpeg">
+    <button class="arrow" onclick="nextSlide()">→</button>
+  </div>
+
+  <h1>ENHYPEN IS 7</h1>
+
+  <div class="box">
+    <h2>Плэйлист — энха ис 7</h2>
+
+    <div class="playlist">
+      <div class="coverBlock">
+        <div class="coverWrap">
+          <div class="verticalVolume">
+            <span>🔊</span>
+            <input type="range" id="coverVolume" min="0" max="1" step="0.01" value="1">
+          </div>
+
+          <img id="albumCover" src="dark.jpeg">
+        </div>
+
+        <div class="coverControls">
+          <button onclick="playPreviousSong()">←</button>
+          <button id="coverPlayBtn" onclick="toggleTopPlay()">▶</button>
+          <button onclick="playNextSong()">→</button>
+        </div>
+      </div>
+
+      <div class="songs" id="songsList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="box tab" id="enha">
+  <h2>ENHYPEN</h2>
+
+  <div class="members">
+    <div class="card"><img src="jw.jpeg"><div class="info">Jungwon / Чонвон<br>09.02.2004</div></div>
+    <div class="card"><img src="hs.jpeg"><div class="info">Heeseung / Хисын<br>15.10.2001</div></div>
+    <div class="card"><img src="jy.jpeg"><div class="info">Jay / Джей<br>20.04.2002</div></div>
+    <div class="card"><img src="jk.jpeg"><div class="info">Jake / Джейк<br>15.11.2002</div></div>
+    <div class="card"><img src="sh.jpeg"><div class="info">Sunghoon / Сонхун<br>08.12.2002</div></div>
+    <div class="card"><img src="sn.jpeg"><div class="info">Sunoo / Сону<br>24.06.2003</div></div>
+    <div class="card"><img src="rk.jpeg"><div class="info">Ni-ki / Ники<br>09.12.2005</div></div>
+  </div>
+
+  <div class="discography">
+    <h2>Дискография</h2>
+    <div class="discoGrid" id="discoGrid"></div>
+  </div>
+</div>
+
+<div class="box tab" id="posts">
+  <h2>Записи</h2>
+
+  <div class="postInput">
+    <input id="postName" placeholder="Твоё имя">
+    <textarea id="postText" placeholder="Напиши запись..."></textarea>
+    <input id="postPhoto" type="file" accept="image/*">
+    <button onclick="addPost()">Добавить запись</button>
+  </div>
+
+  <div id="postsList"></div>
+</div>
+
+<div class="box tab" id="friends">
+  <h2>Друзья</h2>
+
+  <div class="friendsGrid" id="friendList"></div>
+
+  <div class="chatBox" id="chatBox">
+    <h2 id="chatTitle">Чат</h2>
+    <div class="messages" id="messages"></div>
+
+    <div class="chatInput">
+      <input id="chatText" placeholder="Напиши сообщение...">
+      <button onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let chosenIcon = localStorage.getItem("icon") || "jw.jpeg";
+let chosenStatus = localStorage.getItem("status") || "chibijungwon.png";
+let currentChatFriend = "";
+let activeAudio = null;
+let activeSongIndex = Number(localStorage.getItem("activeSongIndex")) || 0;
+
+const statuses = [
+  {name:"Чонвон", file:"chibijungwon.png"},
+  {name:"Хисын", file:"chibihee.png"},
+  {name:"Джей", file:"chibijay.png"},
+  {name:"Джейк", file:"chibijake.png"},
+  {name:"Сонхун", file:"chibisunghoon.png"},
+  {name:"Сону", file:"chibisunoo.png"},
+  {name:"Ни-ки", file:"chibiriki.png"}
+];
+
+const members = [
+  {ru:"чонвон", name:"Jungwon", img:"jw.jpeg"},
+  {ru:"хисын", name:"Heeseung", img:"hs.jpeg"},
+  {ru:"джей", name:"Jay", img:"jy.jpeg"},
+  {ru:"джейк", name:"Jake", img:"jk.jpeg"},
+  {ru:"сонхун", name:"Sunghoon", img:"sh.jpeg"},
+  {ru:"сону", name:"Sunoo", img:"sn.jpeg"},
+  {ru:"рики", name:"Riki", img:"rk.jpeg"},
+  {ru:"ники", name:"Ni-ki", img:"rk.jpeg"}
+];
+
+const songs = [
+  {title:"Bills", file:"Bills.m4a", cover:"dark.jpeg"},
+  {title:"Bite Me", file:"Bite Me.m4a", cover:"dark.jpeg"},
+  {title:"Chaconne", file:"Chaconne.m4a", cover:"dark.jpeg"},
+  {title:"Fate", file:"Fate.m4a", cover:"dark.jpeg"},
+  {title:"Karma", file:"Karma.m4a", cover:"dark.jpeg"},
+  {title:"Sacrifice", file:"Sacrifice (Eat Me Up).m4a", cover:"dark.jpeg"},
+  {title:"XO (Only If You Say Yes)", file:"XO (Only If You Say Yes).m4a", cover:"xo.jpeg"},
+  {title:"Moonstruck", file:"Moonstruck.m4a", cover:"xo.jpeg"},
+  {title:"Royalty", file:"Royalty.m4a", cover:"xo.jpeg"},
+  {title:"Highway 1009", file:"Highway 1009.m4a", cover:"xo.jpeg"},
+  {title:"Your Eyes Only", file:"Your Eyes Only.m4a", cover:"xo.jpeg"},
+  {title:"Paranormal", file:"Paranormal.m4a", cover:"xo.jpeg"},
+  {title:"Hundred Broken Hearts", file:"Hundred Broken Hearts.m4a", cover:"xo.jpeg"},
+  {title:"Brought The Heat Back", file:"Brought The Heat Back.m4a", cover:"xo.jpeg"},
+  {title:"Tamed-Dashed", file:"Tamed-Dashed.mp3", cover:"answer.jpeg"},
+  {title:"Polaroid Love", file:"Polaroid Love.mp3", cover:"answer.jpeg"},
+  {title:"Blessed-Cursed", file:"Blessed-Cursed.mp3", cover:"answer.jpeg"},
+  {title:"Attention, please!", file:"Attention, please!.mp3", cover:"answer.jpeg"},
+  {title:"Blockbuster", file:"Blockbuster feat 연준 of TOMORROW_X_TOGETHER.mp3", cover:"answer.jpeg"},
+  {title:"Go Big or Go Home", file:"Go Big or Go Home.mp3", cover:"answer.jpeg"},
+  {title:"Just A Little Bit", file:"Just A Little Bit.mp3", cover:"answer.jpeg"},
+  {title:"Upper Side Dreamin", file:"Upper Side Dreamin.mp3", cover:"answer.jpeg"}
+];
+
+const albums = [
+  {title:"BORDER : DAY ONE",date:"30.11.2020",img:"border.jpeg",tracks:["Intro : Walk the Line","Given-Taken","Let Me In","10 Months","Flicker","Outro : Cross the Line"]},
+  {title:"BORDER : CARNIVAL",date:"26.04.2021",img:"carnaval.jpeg",tracks:["Intro : The Invitation","Drunk-Dazed","FEVER","Not For Sale","Mixed Up","Outro : The Wormhole"]},
+  {title:"DIMENSION : DILEMMA",date:"12.10.2021",img:"dilemma.jpeg",tracks:["Intro : Whiteout","Tamed-Dashed","Upper Side Dreamin’","Just A Little Bit","Go Big or Go Home","Blockbuster","Attention, please!","Interlude : Question"]},
+  {title:"DIMENSION : ANSWER",date:"10.01.2022",img:"answer.jpeg",tracks:["Intro : Whiteout","Tamed-Dashed","Upper Side Dreamin’","Just A Little Bit","Go Big or Go Home","Blockbuster","Attention, please!","Interlude : Question","Blessed-Cursed","Polaroid Love","Outro : Day 2"]},
+  {title:"MANIFESTO : DAY 1",date:"04.07.2022",img:"manifesto.jpeg",tracks:["WALK THE LINE","Future Perfect (Pass the MIC)","ParadoXXX Invasion","TFW (That Feeling When)","SHOUT OUT","Foreshadow"]},
+  {title:"DARK BLOOD",date:"22.05.2023",img:"dark.jpeg",tracks:["Fate","Bite Me","Sacrifice (Eat Me Up)","Chaconne","Bills","Karma"]},
+  {title:"ORANGE BLOOD",date:"17.11.2023",img:"orange.jpeg",tracks:["Mortal","Sweet Venom","Still Monster","Blind","Orange Flower","Sweet Venom (English ver.)"]},
+  {title:"ROMANCE : UNTOLD",date:"12.07.2024",img:"xo.jpeg",tracks:["Moonstruck","XO (Only If You Say Yes)","Your Eyes Only","Hundred Broken Hearts","Brought The Heat Back","Paranormal","Royalty","Highway 1009"]},
+  {title:"ROMANCE : UNTOLD -daydream-",date:"11.11.2024",img:"daydream.jpeg",tracks:["No Doubt","Daydream","XO","Moonstruck","XO (Only If You Say Yes)","Your Eyes Only","Hundred Broken Hearts","Brought The Heat Back","Paranormal","Royalty","Highway 1009"]},
+  {title:"DESIRE : UNLEASH",date:"05.06.2025",img:"desire.jpeg",tracks:["Bad Desire (With or Without You)","Outside","Loose (Korean ver.)","Helium","Too Close","Bad Desire (English ver.)","Loose"]},
+  {title:"THE SIN : VANISH",date:"16.01.2026",img:"vanish.jpeg",tracks:["사건의 발단 (The Beginning)","No Way Back (feat. So!YoON!)","도망자들 (The Fugitives)","Knife","Stealer","우리가 찾던 목소리 (The Voice)","목격자 (Witnesses)","Big Girls Don’t Cry","Lost Island","Sleep Tight","사건의 너머 (The Beyond)"]}
+];
+
+function togglePassword(id){
+  let input = document.getElementById(id);
+  input.type = input.type === "password" ? "text" : "password";
+}
+
+function getDeletedUsers(){
+  return JSON.parse(localStorage.getItem("deletedUsers")) || [];
+}
+
+function saveDeletedUsers(deleted){
+  localStorage.setItem("deletedUsers", JSON.stringify([...new Set(deleted.filter(Boolean))]));
+}
+
+function getUsers(){
+  let deleted = getDeletedUsers();
+  let users = JSON.parse(localStorage.getItem("users")) || [];
+  users = users.filter(user => user && user.username && !deleted.includes(user.username));
+  localStorage.setItem("users", JSON.stringify(users));
+  return users;
+}
+
+const OWNER_USERNAME = "nikadura";
+
+const SUPABASE_USERS_TABLE = "NIARI";
+
+function normalizeUserFromDb(user){
+  if(!user) return null;
+
+  return {
+    name:user.name || "Без имени",
+    username:user.username || "",
+    password:user.password || "",
+    birthday:user.birthday || "ENHYPEN",
+    icon:user.icon || "jw.jpeg",
+    bias:user.bias || "",
+    biasWrecker:user.biasWrecker || "",
+    favSong:user.favSong || "",
+    description:user.description || "",
+    status:user.status || "chibijungwon.png",
+    lastSong:user.lastSong || ""
+  };
+}
+
+function userToDbRow(user){
+  return {
+    username:user.username || "",
+    name:user.name || "",
+    password:user.password || "",
+    icon:user.icon || "jw.jpeg",
+    description:user.description || "",
+    bias:user.bias || "",
+    biasWrecker:user.biasWrecker || "",
+    favSong:user.favSong || ""
+  };
+}
+
+async function loadUsersFromSupabase(){
+  if(!window.supabase){
+    return getUsers();
+  }
+
+  try{
+    const { data, error } = await supabase
+      .from(SUPABASE_USERS_TABLE)
+      .select("*")
+      .order("created_at", { ascending:false });
+
+    if(error){
+      console.error("Supabase users load error:", error);
+      return getUsers();
+    }
+
+    let deleted = getDeletedUsers();
+    let users = (data || [])
+      .map(normalizeUserFromDb)
+      .filter(user => user && user.username && !deleted.includes(user.username));
+
+    localStorage.setItem("users", JSON.stringify(users));
+    return users;
+  }catch(error){
+    console.error("Supabase users load error:", error);
+    return getUsers();
+  }
+}
+
+async function saveUserToSupabase(user){
+  if(!window.supabase || !user || !user.username) return;
+
+  try{
+    const row = userToDbRow(user);
+
+    const { data:existing, error:selectError } = await supabase
+      .from(SUPABASE_USERS_TABLE)
+      .select("id")
+      .eq("username", user.username)
+      .limit(1);
+
+    if(selectError){
+      console.error("Supabase user check error:", selectError);
+      return;
+    }
+
+    if(existing && existing.length > 0){
+      const { error:updateError } = await supabase
+        .from(SUPABASE_USERS_TABLE)
+        .update(row)
+        .eq("username", user.username);
+
+      if(updateError) console.error("Supabase user update error:", updateError);
+    }else{
+      const { error:insertError } = await supabase
+        .from(SUPABASE_USERS_TABLE)
+        .insert([row]);
+
+      if(insertError) console.error("Supabase user insert error:", insertError);
+    }
+  }catch(error){
+    console.error("Supabase user save error:", error);
+  }
+}
+
+async function deleteUserFromSupabase(username){
+  if(!window.supabase || !username) return;
+
+  try{
+    const { error } = await supabase
+      .from(SUPABASE_USERS_TABLE)
+      .delete()
+      .eq("username", username);
+
+    if(error) console.error("Supabase user delete error:", error);
+  }catch(error){
+    console.error("Supabase user delete error:", error);
+  }
+}
+
+
+function isOwner(){
+  return localStorage.getItem("username") === OWNER_USERNAME;
+}
+
+function getFollows(){
+  return JSON.parse(localStorage.getItem("follows")) || {};
+}
+
+function saveFollows(follows){
+  localStorage.setItem("follows", JSON.stringify(follows));
+}
+
+function isFollowing(fromUser, toUser){
+  let follows = getFollows();
+  return !!(follows[fromUser] && follows[fromUser].includes(toUser));
+}
+
+function areFriends(userA, userB){
+  return isFollowing(userA, userB) && isFollowing(userB, userA);
+}
+
+async function toggleFollow(username){
+  let myUsername = localStorage.getItem("username") || "";
+
+  if(!myUsername){
+    alert("Сначала войди в профиль.");
+    return;
+  }
+
+  if(myUsername === username){
+    return;
+  }
+
+  let users = await loadUsersFromSupabase();
+  if(!users.some(u => u.username === username)){
+    alert("Профиль не найден.");
+    cleanDeletedData();
+    await showFriend();
+    return;
+  }
+
+  let follows = getFollows();
+  if(!follows[myUsername]) follows[myUsername] = [];
+
+  if(follows[myUsername].includes(username)){
+    follows[myUsername] = follows[myUsername].filter(u => u !== username);
+  }else{
+    follows[myUsername].push(username);
+  }
+
+  saveFollows(follows);
+  updateFollowButton(username);
+  await showFriend();
+  showProfile();
+}
+
+async function toggleFollowPublic(){
+  let username = document.getElementById("publicUsername").innerText;
+  await toggleFollow(username);
+}
+
+function updateFollowButton(username){
+  let btn = document.getElementById("followBtn");
+  if(!btn) return;
+
+  let myUsername = localStorage.getItem("username") || "";
+
+  if(!myUsername || myUsername === username){
+    btn.style.display = "none";
+    return;
+  }
+
+  btn.style.display = "inline-block";
+
+  if(areFriends(myUsername, username)){
+    btn.innerText = "Вы друзья";
+  }else if(isFollowing(myUsername, username)){
+    btn.innerText = "Вы подписаны";
+  }else{
+    btn.innerText = "Подписаться";
+  }
+}
+
+function openFriendsTabFromProfile(){
+  closeProfile();
+  showTab("friends");
+}
+
+function cleanDeletedData(){
+  let users = getUsers();
+  let existing = users.map(u => u.username);
+  let existingSet = new Set(existing);
+  let deletedSet = new Set(getDeletedUsers());
+
+  let follows = getFollows();
+  Object.keys(follows).forEach(username => {
+    if(!existingSet.has(username)){
+      delete follows[username];
+    }else{
+      follows[username] = (follows[username] || []).filter(u => existingSet.has(u) && u !== username);
+    }
+  });
+  saveFollows(follows);
+
+  postsArray = postsArray.filter(post => !post.username || (existingSet.has(post.username) && !deletedSet.has(post.username)));
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+
+  messagesArray = messagesArray.filter(msg => existingSet.has(msg.from) && existingSet.has(msg.to) && !deletedSet.has(msg.from) && !deletedSet.has(msg.to));
+  localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
+}
+
+async function openOwnerDatabase(){
+  if(!isOwner()){
+    alert("База данных доступна только владельцу сайта.");
+    return;
+  }
+
+  await loadUsersFromSupabase();
+
+  document.getElementById("profileBlock").style.display = "none";
+  document.getElementById("settingsBlock").style.display = "none";
+  document.getElementById("registerBlock").style.display = "none";
+  document.getElementById("ownerDatabasePage").style.display = "block";
+
+  await renderOwnerDatabase();
+}
+
+function backFromOwnerDatabase(){
+  document.getElementById("ownerDatabasePage").style.display = "none";
+  document.getElementById("profileBlock").style.display = "block";
+  showProfile();
+}
+
+async function renderOwnerDatabase(){
+  let page = document.getElementById("ownerDatabasePage");
+  let list = document.getElementById("ownerUsersList");
+  let ownerBtn = document.getElementById("ownerDbOpenBtn");
+
+  if(ownerBtn){
+    ownerBtn.style.display = isOwner() ? "block" : "none";
+  }
+
+  if(!list) return;
+
+  if(!isOwner()){
+    if(page) page.style.display = "none";
+    return;
+  }
+
+  let users = await loadUsersFromSupabase();
+
+  if(users.length === 0){
+    list.innerHTML = "<p>Пока нет аккаунтов.</p>";
+    return;
+  }
+
+  list.innerHTML = users.map(user => `
+    <div class="ownerDbCard">
+      <img src="${user.icon || 'jw.jpeg'}">
+      <div class="ownerDbInfo">
+        <b>${user.name || 'Без имени'}</b><br>
+        <span>${user.username || ''}</span><br>
+        <small>Биас: ${user.bias || 'не выбран'}<br>Последняя песня: ${user.lastSong || 'пока не слушал(а)'}</small>
+      </div>
+      <div class="ownerDbActions">
+        <button class="ownerSmallBtn" onclick="openPublicProfile('${user.username}', 'database')">Профиль</button>
+        ${user.username === OWNER_USERNAME ? '<b>Владелец</b>' : `<button class="deleteBtn" onclick="deleteUser('${user.username}')">Удалить</button>`}
+      </div>
+    </div>
+  `).join("");
+}
+
+function openDatabaseProfile(username){
+  if(!isOwner()) return;
+
+  let users = getUsers();
+  let user = users.find(u => u.username === username);
+  let box = document.getElementById("ownerSelectedProfile");
+
+  if(!user || !box) return;
+
+  box.style.display = "block";
+  box.innerHTML = `
+    <img src="${user.icon || 'jw.jpeg'}">
+    <h2>${user.name || 'Без имени'}</h2>
+    <p>${user.username || ''}</p>
+    <p>Описание: ${user.description || 'не добавлено'}</p>
+    <p>Биас: ${user.bias || 'не выбран'}</p>
+    <p>Биас врекер: ${user.biasWrecker || 'не выбран'}</p>
+    <p>Любимая песня: ${user.favSong || 'не выбрана'}</p>
+    <p>Последняя песня: ${user.lastSong || 'пока не слушал(а)'}</p>
+  `;
+}
+
+async function deleteUser(username){
+  if(!isOwner()){
+    alert("Удалять аккаунты может только владелец сайта.");
+    return;
+  }
+
+  if(username === OWNER_USERNAME){
+    alert("Аккаунт владельца удалить нельзя.");
+    return;
+  }
+
+  let deletedList = getDeletedUsers();
+  deletedList.push(username);
+  saveDeletedUsers(deletedList);
+
+  let deletedUser = getUsers().find(user => user.username === username);
+  let users = getUsers().filter(user => user.username !== username);
+  localStorage.setItem("users", JSON.stringify(users));
+
+  await deleteUserFromSupabase(username);
+
+  postsArray = postsArray.filter(post =>
+    post.username !== username && (!deletedUser || post.author !== deletedUser.name)
+  );
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+
+  messagesArray = messagesArray.filter(msg => msg.from !== username && msg.to !== username);
+  localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
+
+  let follows = getFollows();
+  delete follows[username];
+  Object.keys(follows).forEach(user => {
+    follows[user] = follows[user].filter(item => item !== username);
+  });
+  saveFollows(follows);
+
+  let currentUsername = localStorage.getItem("username");
+  if(currentUsername === username){
+    logoutProfile();
+  }
+
+  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block" && publicUsername.innerText === username){
+    backFromPublicProfile();
+  }
+
+  await renderOwnerDatabase();
+  await showFriend();
+  showPosts();
+  showProfilePosts();
+  await renderProfileFriends();
+  alert("Аккаунт удалён.");
+}
+
+function chooseStatus(status){
+  chosenStatus = status;
+
+  if(document.getElementById("profileStatus")){
+    profileStatus.src = status;
+  }
+
+  document.querySelectorAll(".statusItem").forEach(item=>{
+    item.classList.remove("selected");
+    let img = item.querySelector("img");
+
+    if(img && img.getAttribute("src") === status){
+      item.classList.add("selected");
+    }
+  });
+}
+
+function chooseIcon(icon){
+  chosenIcon = icon;
+  profileIcon.src = icon;
+
+  if(document.getElementById("bigAvatar")){
+    bigAvatar.src = icon;
+  }
+
+  document.querySelectorAll(".icons img").forEach(img=>{
+    img.classList.remove("selected");
+
+    if(img.getAttribute("src") === icon){
+      img.classList.add("selected");
+    }
+  });
+}
+
+function renderStatusSelects(){
+  let html = "";
+
+  statuses.forEach(s=>{
+    html += `
+      <div class="statusItem" onclick="chooseStatus('${s.file}')">
+        <img src="${s.file}">
+        <p>${s.name}</p>
+      </div>
+    `;
+  });
+
+  registerStatusSelect.innerHTML = html;
+  editStatusSelect.innerHTML = html;
+
+  chooseStatus(chosenStatus);
+}
+
+function getMemberByName(name){
+  return members.find(m=>m.name===name) || members[0];
+}
+
+function getSongByTitle(title){
+  return songs.find(s=>s.title===title) || songs[0];
+}
+
+function fillSelects(){
+  let songOptions = `<option value="">Любимая песня</option>`;
+  songs.forEach(s=>songOptions += `<option>${s.title}</option>`);
+
+  favSong.innerHTML = songOptions;
+  editFavSong.innerHTML = songOptions;
+
+  let memberOptions = "";
+  ["Jungwon","Heeseung","Jay","Jake","Sunghoon","Sunoo","Ni-ki"].forEach(m=>{
+    memberOptions += `<option>${m}</option>`;
+  });
+
+  bias.innerHTML = `<option value="">Выберите биаса</option>` + memberOptions;
+  biasWrecker.innerHTML = `<option value="">Выберите биас врекера</option>` + memberOptions;
+  editBias.innerHTML = `<option value="">Выберите биаса</option>` + memberOptions;
+  editBiasWrecker.innerHTML = `<option value="">Выберите биас врекера</option>` + memberOptions;
+}
+
+function renderSongs(){
+  songsList.innerHTML = "";
+
+  songs.forEach((song,index)=>{
+    songsList.innerHTML += `
+      <div class="song">
+        <p>${song.title}</p>
+        <audio preload="auto" id="audio-${index}" controls src="${song.file}" onplay="songStarted(${index}, this)"></audio>
+      </div>
+    `;
+  });
+}
+
+function songStarted(index,audio){
+  activeAudio = audio;
+  activeSongIndex = index;
+
+  localStorage.setItem("activeSongIndex", index);
+  localStorage.setItem("lastSong", songs[index].title);
+
+  activeAudio.volume = coverVolume.value;
+
+  albumCover.src = songs[index].cover;
+  nowPlaying.style.display = "block";
+  document.body.classList.add("musicPlaying");
+  nowPlayingText.innerText = "Сейчас играет: " + songs[index].title;
+
+  saveUserToList();
+  showProfile();
+  updatePlayButtons();
+}
+
+function playSongByIndex(index){
+  if(index < 0) index = songs.length - 1;
+  if(index >= songs.length) index = 0;
+
+  let audio = document.getElementById("audio-" + index);
+  if(audio) audio.play();
+}
+
+function playNextSong(){
+  playSongByIndex(activeSongIndex + 1);
+}
+
+function playPreviousSong(){
+  playSongByIndex(activeSongIndex - 1);
+}
+
+function toggleTopPlay(){
+  if(!activeAudio){
+    playSongByIndex(activeSongIndex || 0);
+    return;
+  }
+
+  if(activeAudio.paused){
+    activeAudio.play();
+  }else{
+    activeAudio.pause();
+  }
+
+  updatePlayButtons();
+}
+
+function updatePlayButtons(){
+  if(!activeAudio || activeAudio.paused){
+    topPlayBtn.innerText = "▶";
+    coverPlayBtn.innerText = "▶";
+  }else{
+    topPlayBtn.innerText = "Ⅱ";
+    coverPlayBtn.innerText = "Ⅱ";
+  }
+}
+
+setInterval(()=>{
+  if(activeAudio && activeAudio.duration){
+    topSeek.value = (activeAudio.currentTime / activeAudio.duration) * 100;
+    localStorage.setItem("songTime", activeAudio.currentTime);
+  }
+},300);
+
+topSeek.addEventListener("input",()=>{
+  if(activeAudio && activeAudio.duration){
+    activeAudio.currentTime = (topSeek.value / 100) * activeAudio.duration;
+  }
+});
+
+coverVolume.addEventListener("input",()=>{
+  if(activeAudio){
+    activeAudio.volume = coverVolume.value;
+  }
+});
+
+function renderAlbums(){
+  discoGrid.innerHTML = "";
+
+  albums.forEach((album,index)=>{
+    discoGrid.innerHTML += `
+      <div class="album">
+        <img src="${album.img}">
+        <div class="albumInfo">
+          <div>
+            ${album.title}<br>
+            ${album.date}<br>
+            <button class="albumArrow" onclick="openAlbum(${index})">➜</button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function openAlbum(index){
+  let album = albums[index];
+
+  modalAlbumImg.src = album.img;
+  modalAlbumTitle.innerText = album.title;
+  modalAlbumDate.innerText = album.date;
+
+  modalTracklist.innerHTML = "";
+
+  album.tracks.forEach(track=>{
+    modalTracklist.innerHTML += `<li>${track}</li>`;
+  });
+
+  albumModal.style.display = "flex";
+}
+
+function closeAlbum(){
+  albumModal.style.display = "none";
+}
+
+function openMyProfile(){
+  profilePage.style.display="block";
+  settingsBlock.style.display = "none";
+  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
+  if(document.getElementById("publicProfilePage")) publicProfilePage.style.display = "none";
+
+  if(localStorage.getItem("registered")==="yes"){
+    registerBlock.style.display="none";
+    profileBlock.style.display="block";
+    showProfile();
+  }else{
+    registerBlock.style.display="block";
+    profileBlock.style.display="none";
+  }
+}
+
+function closeProfile(){
+  profilePage.style.display="none";
+}
+
+function openSettings(){
+  profileBlock.style.display = "none";
+  registerBlock.style.display = "none";
+  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
+  if(document.getElementById("publicProfilePage")) publicProfilePage.style.display = "none";
+  settingsBlock.style.display = "block";
+
+  document.getElementById("name").value = localStorage.getItem("name") || "";
+  document.getElementById("editUsername").value = localStorage.getItem("username") || "";
+  document.getElementById("editPassword").value = localStorage.getItem("password") || "";
+  document.getElementById("birthday").value = localStorage.getItem("birthday") || "";
+  document.getElementById("editBias").value = localStorage.getItem("bias") || "";
+  document.getElementById("editBiasWrecker").value = localStorage.getItem("biasWrecker") || "";
+  document.getElementById("editFavSong").value = localStorage.getItem("favSong") || "";
+  document.getElementById("editDescription").value = localStorage.getItem("description") || "";
+
+  chooseIcon(localStorage.getItem("icon") || "jw.jpeg");
+  chooseStatus(localStorage.getItem("status") || "chibijungwon.png");
+}
+
+function backToProfile(){
+  settingsBlock.style.display = "none";
+  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
+  profileBlock.style.display = "block";
+  showProfile();
+}
+
+async function saveUserToList(){
+  let users = getUsers();
+  let currentUsername = localStorage.getItem("username");
+
+  let deleted = getDeletedUsers();
+  if(deleted.includes(currentUsername)){
+    logoutProfile();
+    return;
+  }
+
+  let user = {
+    name: localStorage.getItem("name"),
+    username: localStorage.getItem("username"),
+    password: localStorage.getItem("password"),
+    birthday: localStorage.getItem("birthday"),
+    icon: localStorage.getItem("icon"),
+    bias: localStorage.getItem("bias"),
+    biasWrecker: localStorage.getItem("biasWrecker"),
+    favSong: localStorage.getItem("favSong"),
+    description: localStorage.getItem("description"),
+    status: localStorage.getItem("status"),
+    lastSong: localStorage.getItem("lastSong")
+  };
+
+  users = users.filter(u => u.username !== user.username);
+  users.push(user);
+
+  localStorage.setItem("users", JSON.stringify(users));
+  await saveUserToSupabase(user);
+}
+
+async function registerProfile(){
+  let usernameValue = username.value.trim();
+  let passwordValue = password.value.trim();
+  let users = await loadUsersFromSupabase();
+
+  if(displayName.value.trim() === ""){
+    alert("Введи имя");
+    return;
+  }
+
+  if(usernameValue === ""){
+    alert("Введи юзернейм");
+    return;
+  }
+
+  if(passwordValue === ""){
+    alert("Введи пароль");
+    return;
+  }
+
+  if(getDeletedUsers().includes(usernameValue)){
+    alert("Этот профиль удалён владельцем сайта.");
+    return;
+  }
+
+  let usernameBusy = users.some(u=>u.username === usernameValue);
+
+  if(usernameBusy){
+    alert("Такой юзернейм уже занят.");
+    return;
+  }
+
+  localStorage.setItem("registered","yes");
+  localStorage.setItem("name",displayName.value.trim());
+  localStorage.setItem("username",usernameValue);
+  localStorage.setItem("oldUsername",usernameValue);
+  localStorage.setItem("password",passwordValue);
+  localStorage.setItem("birthday","ENHYPEN");
+  localStorage.setItem("icon",chosenIcon);
+  localStorage.setItem("bias",bias.value);
+  localStorage.setItem("biasWrecker",biasWrecker.value);
+  localStorage.setItem("favSong",favSong.value);
+  localStorage.setItem("description",description.value);
+  localStorage.setItem("status",chosenStatus);
+  localStorage.setItem("lastSong","");
+
+  await saveUserToList();
+
+  registerBlock.style.display="none";
+  settingsBlock.style.display="none";
+  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display="none";
+  profileBlock.style.display="block";
+
+  showProfile();
+  await showFriend();
+  await renderOwnerDatabase();
+}
+
+async function loginProfile(){
+  let usernameValue = loginEnter.value.trim();
+  let passwordValue = passwordEnter.value.trim();
+  let users = await loadUsersFromSupabase();
+
+  if(getDeletedUsers().includes(usernameValue)){
+    alert("Этот профиль удалён владельцем сайта.");
+    return;
+  }
+
+  let user = users.find(u=>u.username === usernameValue && u.password === passwordValue);
+
+  if(!user){
+    alert("Неверный юзернейм или пароль");
+    return;
+  }
+
+  localStorage.setItem("registered","yes");
+  localStorage.setItem("name",user.name);
+  localStorage.setItem("username",user.username);
+  localStorage.setItem("oldUsername",user.username);
+  localStorage.setItem("password",user.password);
+  localStorage.setItem("birthday",user.birthday || "");
+  localStorage.setItem("icon",user.icon || "jw.jpeg");
+  localStorage.setItem("bias",user.bias || "");
+  localStorage.setItem("biasWrecker",user.biasWrecker || "");
+  localStorage.setItem("favSong",user.favSong || "");
+  localStorage.setItem("description",user.description || "");
+  localStorage.setItem("status",user.status || "chibijungwon.png");
+  localStorage.setItem("lastSong",user.lastSong || "");
+
+  chosenIcon = user.icon || "jw.jpeg";
+  chosenStatus = user.status || "chibijungwon.png";
+
+  registerBlock.style.display="none";
+  settingsBlock.style.display="none";
+  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display="none";
+  profileBlock.style.display="block";
+
+  showProfile();
+  await showFriend();
+}
+
+
+let publicProfileBack = "profile";
+
+function toggleProfileFriends(){
+  let box = document.getElementById("profileFriendsBox");
+  if(!box) return;
+
+  if(box.style.display === "block"){
+    box.style.display = "none";
+    return;
+  }
+
+  renderProfileFriends();
+  box.style.display = "block";
+}
+
+async function renderProfileFriends(){
+  let box = document.getElementById("profileFriendsBox");
+  if(!box) return;
+
+  let myUsername = localStorage.getItem("username") || "";
+  let users = (await loadUsersFromSupabase()).filter(u => u.username !== myUsername && areFriends(myUsername, u.username));
+
+  if(users.length === 0){
+    box.innerHTML = "<p>Пока нет друзей.</p>";
+    return;
+  }
+
+  box.innerHTML = users.map(user => `
+    <div class="profileFriendItem">
+      <div class="profileFriendMain">
+        <img src="${user.icon || 'jw.jpeg'}">
+        <div>
+          <b>${user.name || 'Без имени'}</b><br>
+          <span>${user.username || ''}</span>
+        </div>
+      </div>
+      <button class="friendProfileBtn" onclick="openPublicProfile('${user.username}', 'profile')">Открыть</button>
+    </div>
+  `).join("");
+}
+
+async function openPublicProfile(username, backPlace){
+  let users = await loadUsersFromSupabase();
+  let user = users.find(u => u.username === username);
+
+  if(!user){
+    alert("Профиль не найден.");
+    return;
+  }
+
+  publicProfileBack = backPlace || "profile";
+
+  registerBlock.style.display = "none";
+  profileBlock.style.display = "none";
+  settingsBlock.style.display = "none";
+  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
+  document.getElementById("publicProfilePage").style.display = "block";
+
+  let biasMember = getMemberByName(user.bias || "Jungwon");
+  let wreckerMember = getMemberByName(user.biasWrecker || "Jungwon");
+  let song = getSongByTitle(user.favSong || "Bills");
+
+  publicAvatar.src = user.icon || "jw.jpeg";
+  publicName.innerText = user.name || "Без имени";
+  publicStatus.src = user.status || "chibijungwon.png";
+  publicUsername.innerText = user.username || "";
+  updateFollowButton(user.username || "");
+  publicBirthday.innerText = user.birthday || "";
+  publicDescription.innerText = "Описание: " + (user.description || "описание не добавлено");
+  publicLastSong.innerText = "Последняя песня: " + (user.lastSong || "пока не слушал(а)");
+
+  publicBiasPhoto.src = biasMember.img;
+  publicBias.innerText = user.bias || "не выбран";
+
+  publicBiasWreckerPhoto.src = wreckerMember.img;
+  publicBiasWrecker.innerText = user.biasWrecker || "не выбран";
+
+  publicSong.innerText = user.favSong || "не выбрана";
+  publicSongAudio.src = song.file;
+
+  renderPublicPosts(user.username);
+}
+
+function backFromPublicProfile(){
+  document.getElementById("publicProfilePage").style.display = "none";
+
+  if(publicProfileBack === "database" && isOwner()){
+    ownerDatabasePage.style.display = "block";
+    renderOwnerDatabase();
+  }else{
+    profileBlock.style.display = "block";
+    showProfile();
+  }
+}
+
+function renderPublicPosts(user){
+  let box = document.getElementById("publicPosts");
+  if(!box) return;
+
+  box.innerHTML = "";
+
+  let userPosts = postsArray.filter(post =>
+    post.username === user.username || post.author === user.name
+  );
+
+  if(userPosts.length === 0){
+    box.innerHTML = "<p>Пока нет записей.</p>";
+    return;
+  }
+
+  userPosts.forEach(post=>{
+    box.innerHTML += createPostHTML(post);
+  });
+}
+
+function showProfile(){
+  let nameValue = localStorage.getItem("name") || "Профиль";
+  let usernameValue = localStorage.getItem("username") || "";
+  let birthdayValue = localStorage.getItem("birthday") || "";
+  let icon = localStorage.getItem("icon") || "jw.jpeg";
+  let status = localStorage.getItem("status") || "chibijungwon.png";
+  let biasValue = localStorage.getItem("bias") || "Jungwon";
+  let biasWreckerValue = localStorage.getItem("biasWrecker") || "Jungwon";
+  let favSongValue = localStorage.getItem("favSong") || "Bills";
+  let descriptionValue = localStorage.getItem("description") || "описание не добавлено";
+  let lastSongValue = localStorage.getItem("lastSong") || "пока не слушал(а)";
+
+  let biasMember = getMemberByName(biasValue);
+  let wreckerMember = getMemberByName(biasWreckerValue);
+  let song = getSongByTitle(favSongValue);
+
+  profileName.innerText = nameValue;
+  profileStatus.src = status;
+  profileUsername.innerText = usernameValue;
+  profileBirthday.innerText = birthdayValue;
+  profileDescription.innerText = "Описание: " + descriptionValue;
+  let friendsCount = getUsers().filter(u => u.username !== usernameValue && areFriends(usernameValue, u.username)).length;
+  profileFriendsCount.innerHTML = `<button class="profileFriendsBtn" onclick="openFriendsTabFromProfile()">Друзей: ${friendsCount}</button>`;
+  profileLastSong.innerText = "Последняя песня: " + lastSongValue;
+
+  profileBias.innerText = biasMember.name;
+  biasPhoto.src = biasMember.img;
+
+  profileBiasWrecker.innerText = wreckerMember.name;
+  biasWreckerPhoto.src = wreckerMember.img;
+
+  profileSong.innerText = song.title;
+  profileSongAudio.src = song.file;
+  profileSongAudio.onplay = function(){
+    songStarted(songs.indexOf(song), profileSongAudio);
+  };
+
+  bigAvatar.src = icon;
+  profileIcon.src = icon;
+
+  showProfilePosts();
+  renderOwnerDatabase();
+}
+
+function logoutProfile(){
+  ["registered","name","username","oldUsername","birthday","icon","bias","biasWrecker","favSong","description","status","password"].forEach(item=>{
+    localStorage.removeItem(item);
+  });
+
+  chosenIcon = "jw.jpeg";
+  chosenStatus = "chibijungwon.png";
+
+  profileIcon.src = "jw.jpeg";
+  registerBlock.style.display = "block";
+  profileBlock.style.display = "none";
+  settingsBlock.style.display = "none";
+  if(document.getElementById("ownerDatabasePage")) ownerDatabasePage.style.display = "none";
+
+  showFriend();
+}
+
+async function saveProfile(){
+  let newName = document.getElementById("name").value.trim();
+  let newUsername = document.getElementById("editUsername").value.trim();
+  let newPassword = document.getElementById("editPassword").value.trim();
+
+  if(newName === ""){
+    alert("Имя не может быть пустым");
+    return;
+  }
+
+  if(newUsername === ""){
+    alert("Юзернейм не может быть пустым");
+    return;
+  }
+
+  if(newPassword === ""){
+    alert("Пароль не может быть пустым");
+    return;
+  }
+
+  let users = await loadUsersFromSupabase();
+  let oldUsername = localStorage.getItem("username");
+
+  let usernameBusy = users.some(u =>
+    u.username === newUsername && u.username !== oldUsername
+  );
+
+  if(usernameBusy){
+    alert("Такой юзернейм уже занят.");
+    return;
+  }
+
+  if(oldUsername && oldUsername !== newUsername){
+    await deleteUserFromSupabase(oldUsername);
+  }
+
+  localStorage.setItem("name", newName);
+  localStorage.setItem("username", newUsername);
+  localStorage.setItem("oldUsername", newUsername);
+  localStorage.setItem("password", newPassword);
+  localStorage.setItem("birthday", document.getElementById("birthday").value);
+  localStorage.setItem("bias", document.getElementById("editBias").value);
+  localStorage.setItem("biasWrecker", document.getElementById("editBiasWrecker").value);
+  localStorage.setItem("favSong", document.getElementById("editFavSong").value);
+  localStorage.setItem("description", document.getElementById("editDescription").value);
+  localStorage.setItem("icon", chosenIcon);
+  localStorage.setItem("status", chosenStatus);
+
+  await saveUserToList();
+
+  chosenIcon = localStorage.getItem("icon") || "jw.jpeg";
+  chosenStatus = localStorage.getItem("status") || "chibijungwon.png";
+
+  document.getElementById("settingsBlock").style.display = "none";
+  document.getElementById("registerBlock").style.display = "none";
+  if(document.getElementById("ownerDatabasePage")) document.getElementById("ownerDatabasePage").style.display = "none";
+  document.getElementById("profileBlock").style.display = "block";
+
+  showProfile();
+  await showFriend();
+  await renderOwnerDatabase();
+  chooseIcon(chosenIcon);
+  chooseStatus(chosenStatus);
+
+  document.getElementById("profilePage").scrollTop = 0;
+}
+
+async function searchUser(){
+  let q = searchUsername.value.trim();
+  let users = await loadUsersFromSupabase();
+
+  searchResultsBox.style.display = "block";
+  searchResults.innerHTML = "";
+
+  let found = users.find(u=>u.username === q);
+
+  if(!found){
+    searchResults.innerHTML = "<p>Пользователь не найден.</p>";
+    return;
+  }
+
+  searchResults.innerHTML = `
+    <div class="friend">
+      <img src="${found.icon || 'jw.jpeg'}">
+      <h3>${found.name || 'Без имени'}</h3>
+      <p>${found.username}</p>
+      <p>${found.description || ""}</p>
+      <p>Последняя песня: ${found.lastSong || "пока не слушал(а)"}</p>
+      <button onclick="openMyProfile(); openPublicProfile('${found.username}', 'profile')">Открыть профиль</button>
+      <button onclick="toggleFollow('${found.username}')">${isFollowing(localStorage.getItem("username") || "", found.username) ? "Вы подписаны" : "Подписаться"}</button>
+      <button onclick="openChat('${found.username}')">Написать</button>
+      ${isOwner() && found.username !== OWNER_USERNAME ? `<button class="deleteBtn" onclick="deleteUser('${found.username}')">Удалить аккаунт</button>` : ""}
+    </div>
+  `;
+}
+
+let postsArray = JSON.parse(localStorage.getItem("postsArray")) || [];
+
+function toggleProfilePostBox(){
+  let box = document.getElementById("profilePostBox");
+  if(!box) return;
+  box.style.display = box.style.display === "block" ? "none" : "block";
+}
+
+function addProfilePost(){
+  let text = document.getElementById("profilePostText").value;
+  let file = document.getElementById("profilePostPhoto").files[0];
+  let author = localStorage.getItem("name") || "Гость";
+
+  if(text === "" && !file){
+    alert("Напиши запись или добавь фото");
+    return;
+  }
+
+  if(file){
+    let reader = new FileReader();
+    reader.onload = function(e){
+      savePost(author, text, e.target.result);
+      document.getElementById("profilePostText").value = "";
+      document.getElementById("profilePostPhoto").value = "";
+      document.getElementById("profilePostBox").style.display = "none";
+    };
+    reader.readAsDataURL(file);
+  }else{
+    savePost(author, text, "");
+    document.getElementById("profilePostText").value = "";
+    document.getElementById("profilePostPhoto").value = "";
+    document.getElementById("profilePostBox").style.display = "none";
+  }
+}
+
+function deletePost(id){
+  let post = postsArray.find(p => p.id === id);
+  let myName = localStorage.getItem("name") || "Гость";
+  let myUsername = localStorage.getItem("username") || "";
+
+  if(!post) return;
+
+  if(post.author !== myName && post.username !== myUsername && !isOwner()){
+    alert("Можно удалять только свои записи.");
+    return;
+  }
+
+  postsArray = postsArray.filter(p => p.id !== id);
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+
+  showPosts();
+  showProfilePosts();
+  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
+    let u = getUsers().find(x => x.username === publicUsername.innerText);
+    if(u) renderPublicPosts(u);
+  }
+}
+
+function addPost(){
+  let author = postName.value || localStorage.getItem("name") || "Гость";
+  let text = postText.value;
+  let file = postPhoto.files[0];
+
+  if(text === "" && !file){
+    alert("Напиши запись или добавь фото");
+    return;
+  }
+
+  if(file){
+    let reader = new FileReader();
+    reader.onload = function(e){
+      savePost(author,text,e.target.result);
+    };
+    reader.readAsDataURL(file);
+  }else{
+    savePost(author,text,"");
+  }
+}
+
+function savePost(author,text,photo){
+  postsArray.push({
+    id:Date.now(),
+    author:author,
+    username:localStorage.getItem("username") || "",
+    text:text,
+    photo:photo,
+    likes:0,
+    comments:[]
+  });
+
+  localStorage.setItem("postsArray",JSON.stringify(postsArray));
+
+  postName.value="";
+  postText.value="";
+  postPhoto.value="";
+
+  showPosts();
+  showProfilePosts();
+  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
+    let u = getUsers().find(x => x.username === publicUsername.innerText);
+    if(u) renderPublicPosts(u);
+  }
+}
+
+function canDeletePost(post){
+  let myName = localStorage.getItem("name") || "Гость";
+  let myUsername = localStorage.getItem("username") || "";
+  return post.author === myName || post.username === myUsername || isOwner();
+}
+
+function escapeText(value){
+  return String(value || "").replace(/[&<>"]/g, function(ch){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[ch];
+  });
+}
+
+function findUserByPostInfo(username, name){
+  let users = getUsers();
+  return users.find(u => u.username === username) || users.find(u => u.name === name) || null;
+}
+
+function openProfileFromPost(username){
+  let myUsername = localStorage.getItem("username") || "";
+
+  if(!username) return;
+
+  if(username === myUsername){
+    openMyProfile();
+    return;
+  }
+
+  openMyProfile();
+  setTimeout(()=>openPublicProfile(username, "profile"), 0);
+}
+
+function createPostHTML(post){
+  if(!post.comments) post.comments = [];
+
+  let postUser = findUserByPostInfo(post.username, post.author);
+  let postUsername = post.username || (postUser ? postUser.username : "");
+  let postAvatar = postUser ? (postUser.icon || "jw.jpeg") : "jw.jpeg";
+  let commentsHTML = "";
+
+  post.comments.forEach((comment, commentIndex)=>{
+    if(!comment.replies) comment.replies = [];
+
+    let commentUser = findUserByPostInfo(comment.username, comment.name);
+    let commentUsername = comment.username || (commentUser ? commentUser.username : "");
+    let commentAvatar = comment.icon || (commentUser ? commentUser.icon : "jw.jpeg") || "jw.jpeg";
+
+    let repliesHTML = "";
+    comment.replies.forEach(reply=>{
+      let replyUser = findUserByPostInfo(reply.username, reply.name);
+      let replyUsername = reply.username || (replyUser ? replyUser.username : "");
+      let replyAvatar = reply.icon || (replyUser ? replyUser.icon : "jw.jpeg") || "jw.jpeg";
+
+      repliesHTML += `
+        <div class="reply">
+          <div class="replyTop">
+            <img class="replyAvatar" src="${replyAvatar}" onclick="openProfileFromPost('${replyUsername}')">
+            <span class="replyName" onclick="openProfileFromPost('${replyUsername}')">${escapeText(reply.name || 'Гость')}</span>
+          </div>
+          <div>${escapeText(reply.text)}</div>
+        </div>
+      `;
+    });
+
+    commentsHTML += `
+      <div class="comment">
+        <div class="commentTop">
+          <img class="commentAvatar" src="${commentAvatar}" onclick="openProfileFromPost('${commentUsername}')">
+          <span class="commentName" onclick="openProfileFromPost('${commentUsername}')">${escapeText(comment.name || 'Гость')}</span>
+        </div>
+        <div>${escapeText(comment.text)}</div>
+        <div class="replyBox">
+          ${repliesHTML}
+          <div class="replyInputRow">
+            <input id="reply-${post.id}-${commentIndex}" placeholder="Ответить на комментарий...">
+            <button class="replyBtn" onclick="addReply(${post.id}, ${commentIndex})">Ответить</button>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  return `
+    <div class="post">
+      <div class="postAuthorRow">
+        <img class="postUserAvatar" src="${postAvatar}" onclick="openProfileFromPost('${postUsername}')">
+        <span class="postAuthorName" onclick="openProfileFromPost('${postUsername}')">${escapeText(post.author)}</span>
+      </div>
+      <div>${escapeText(post.text)}</div>
+      ${post.photo ? `<img src="${post.photo}">` : ""}
+      <button class="likeBtn" onclick="likePost(${post.id})">♡ ${post.likes}</button>
+      ${canDeletePost(post) ? `<button class="deleteBtn" onclick="deletePost(${post.id})">Удалить запись</button>` : ""}
+      <div>
+        <div class="commentInputRow">
+          <input id="comment-${post.id}" placeholder="Комментарий...">
+          <button class="commentSendBtn" onclick="addComment(${post.id})">Отправить</button>
+        </div>
+        ${commentsHTML}
+      </div>
+    </div>
+  `;
+}
+
+function showPosts(){
+  postsList.innerHTML="";
+  postsArray.forEach(post=>{
+    postsList.innerHTML += createPostHTML(post);
+  });
+}
+
+function showProfilePosts(){
+  if(!document.getElementById("profilePosts")) return;
+
+  profilePosts.innerHTML="";
+  let myName = localStorage.getItem("name") || "Гость";
+  let myUsername = localStorage.getItem("username") || "";
+
+  postsArray
+    .filter(post=>post.author===myName || post.username===myUsername)
+    .forEach(post=>{
+      profilePosts.innerHTML += createPostHTML(post);
+    });
+}
+
+function likePost(id){
+  let post = postsArray.find(p=>p.id===id);
+  post.likes++;
+  localStorage.setItem("postsArray",JSON.stringify(postsArray));
+  showPosts();
+  showProfilePosts();
+  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
+    let u = getUsers().find(x => x.username === publicUsername.innerText);
+    if(u) renderPublicPosts(u);
+  }
+}
+
+function refreshPostsEverywhere(){
+  localStorage.setItem("postsArray",JSON.stringify(postsArray));
+  showPosts();
+  showProfilePosts();
+  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
+    let u = getUsers().find(x => x.username === publicUsername.innerText);
+    if(u) renderPublicPosts(u);
+  }
+}
+
+function addComment(id){
+  let input = document.getElementById("comment-" + id);
+  let text = input.value.trim();
+  let nameValue = localStorage.getItem("name") || "Гость";
+  let usernameValue = localStorage.getItem("username") || "";
+  let iconValue = localStorage.getItem("icon") || "jw.jpeg";
+
+  if(text === "") return;
+
+  let post = postsArray.find(p=>p.id===id);
+  if(!post) return;
+  if(!post.comments) post.comments = [];
+
+  post.comments.push({
+    name:nameValue,
+    username:usernameValue,
+    icon:iconValue,
+    text:text,
+    replies:[]
+  });
+
+  input.value = "";
+  refreshPostsEverywhere();
+}
+
+function addReply(postId, commentIndex){
+  let input = document.getElementById("reply-" + postId + "-" + commentIndex);
+  if(!input) return;
+
+  let text = input.value.trim();
+  let nameValue = localStorage.getItem("name") || "Гость";
+  let usernameValue = localStorage.getItem("username") || "";
+  let iconValue = localStorage.getItem("icon") || "jw.jpeg";
+
+  if(text === "") return;
+
+  let post = postsArray.find(p=>p.id===postId);
+  if(!post || !post.comments || !post.comments[commentIndex]) return;
+
+  if(!post.comments[commentIndex].replies){
+    post.comments[commentIndex].replies = [];
+  }
+
+  post.comments[commentIndex].replies.push({
+    name:nameValue,
+    username:usernameValue,
+    icon:iconValue,
+    text:text
+  });
+
+  input.value = "";
+  refreshPostsEverywhere();
+}
+
+async function showFriend(){
+  cleanDeletedData();
+
+  let myUsername = localStorage.getItem("username") || "";
+  let friends = (await loadUsersFromSupabase()).filter(u => u.username !== myUsername && areFriends(myUsername, u.username));
+
+  profileIcon.src = localStorage.getItem("icon") || "jw.jpeg";
+
+  if(!myUsername){
+    friendList.innerHTML = "Сначала войди в профиль, чтобы видеть друзей.";
+    return;
+  }
+
+  let friendsHTML = friends.length === 0
+    ? "<p>Пока нет друзей. Друг появится, когда вы подпишетесь друг на друга.</p>"
+    : friends.map(user => `
+      <div class="friend">
+        <img src="${user.icon || 'jw.jpeg'}">
+        <h3>${user.name || 'Без имени'}</h3>
+        <p>${user.username || ''}</p>
+        <div class="mutualBadge">вы друзья</div>
+        <button onclick="openMyProfile(); openPublicProfile('${user.username}', 'profile')">Открыть профиль</button>
+        <button onclick="openChat('${user.username}')">Написать</button>
+      </div>
+    `).join("");
+
+  friendList.innerHTML = `
+    <div class="friendsSections">
+      <h3 class="friendsSubTitle">Мои друзья</h3>
+      <div class="friendsGrid">${friendsHTML}</div>
+    </div>
+  `;
+}
+
+function openChat(friendName){
+  currentChatFriend = friendName;
+  showTab("friends");
+  chatBox.style.display = "block";
+  chatTitle.innerText = "Чат с " + friendName;
+  showMessages();
+}
+
+let messagesArray = JSON.parse(localStorage.getItem("messagesArray")) || [];
+
+function sendMessage(){
+  let text = chatText.value;
+  let myName = localStorage.getItem("username") || "Гость";
+
+  if(text === ""){
+    alert("Напиши сообщение");
+    return;
+  }
+
+  messagesArray.push({
+    from:myName,
+    to:currentChatFriend,
+    text:text
+  });
+
+  localStorage.setItem("messagesArray",JSON.stringify(messagesArray));
+
+  chatText.value="";
+  showMessages();
+}
+
+function showMessages(){
+  messages.innerHTML="";
+  let myName = localStorage.getItem("username") || "Гость";
+
+  messagesArray.forEach(msg=>{
+    if(msg.to === currentChatFriend || msg.from === currentChatFriend){
+      let side = msg.from === myName ? "me" : "other";
+
+      messages.innerHTML += `
+        <div class="message ${side}">
+          <div>${msg.text}</div>
+        </div>
+      `;
+    }
+  });
+
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function showTab(id){
+  document.querySelectorAll(".tab").forEach(tab=>tab.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  if(id === "friends") showFriend();
+}
+
+const slides = [
+  "enhy1.jpeg",
+  "enhy2.jpeg",
+  "enhy3.jpeg",
+  "enhy4.jpeg",
+  "enhy5.jpeg",
+  "enhy6.jpeg",
+  "enhy7.jpeg"
+];
+
+let currentSlide = 0;
+
+function nextSlide(){
+  currentSlide++;
+  if(currentSlide >= slides.length) currentSlide = 0;
+  slide.src = slides[currentSlide];
+}
+
+function prevSlide(){
+  currentSlide--;
+  if(currentSlide < 0) currentSlide = slides.length - 1;
+  slide.src = slides[currentSlide];
+}
+
+document.addEventListener("play",function(e){
+  if(e.target.tagName === "AUDIO"){
+    document.querySelectorAll("audio").forEach(audio=>{
+      if(audio !== e.target){
+        audio.pause();
+      }
+    });
+    updatePlayButtons();
+  }
+},true);
+
+document.addEventListener("pause",function(e){
+  if(e.target.tagName === "AUDIO"){
+    updatePlayButtons();
+  }
+},true);
+
+document.addEventListener("visibilitychange",()=>{
+  if(activeAudio && !activeAudio.paused){
+    activeAudio.play().catch(()=>{});
+  }
+});
+
+fillSelects();
+renderStatusSelects();
+renderSongs();
+renderAlbums();
+cleanDeletedData();
+
+(async()=>{
+  await loadUsersFromSupabase();
+  await showFriend();
+  showPosts();
+  showMessages();
+  updatePlayButtons();
+  await renderOwnerDatabase();
+  chooseIcon(chosenIcon);
+  chooseStatus(chosenStatus);
+})();
+</script>
+
+</body>
+</html>
