@@ -2016,12 +2016,52 @@ function isOwner(){
   return localStorage.getItem("username") === OWNER_USERNAME;
 }
 
-function getFollows(){
-  return JSON.parse(localStorage.getItem("follows")) || {};
+async function getFollows(){
+
+  const { data, error } = await sb
+    .from("follows")
+    .select("*");
+
+  if(error){
+    console.error(error);
+    return {};
+  }
+
+  let follows = {};
+
+  data.forEach(row => {
+
+    if(!follows[row.follower]){
+      follows[row.follower] = [];
+    }
+
+    follows[row.follower].push(row.following);
+
+  });
+
+  return follows;
 }
 
-function saveFollows(follows){
+async function saveFollows(follows){
+
   localStorage.setItem("follows", JSON.stringify(follows));
+
+  await sb.from("follows").delete().neq("id", 0);
+
+  let rows = [];
+
+  Object.keys(follows).forEach(user => {
+    follows[user].forEach(target => {
+      rows.push({
+        follower: user,
+        following: target
+      });
+    });
+  });
+
+  if(rows.length > 0){
+    await sb.from("follows").insert(rows);
+  }
 }
 
 function isFollowing(fromUser, toUser){
