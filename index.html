@@ -1461,23 +1461,6 @@ const sb = window.supabase.createClient(
 const sitePassword = "enha7";
 const enteredPassword = prompt("Введите пароль:");
 
-if (enteredPassword !== sitePassword) {
-  document.body.innerHTML = `
-  <div style="
-    background:black;
-    color:white;
-    height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-size:30px;
-    font-family:Arial;
-  ">
-    Неверный пароль
-  </div>
-  `;
-  throw new Error("Wrong password");
-}
 </script>
 
 <div class="nowPlaying" id="nowPlaying">
