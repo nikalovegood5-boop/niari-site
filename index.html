@@ -1452,6 +1452,31 @@ const sb = window.supabase.createClient(
   supabaseUrl,
   supabaseKey
 );
+
+// Функция для инициализации всех таблиц в Supabase
+async function initSupabaseTables() {
+  // Таблица пользователей уже существует (NIARI)
+  
+  // Создаем таблицу для постов если её нет
+  const { error: postsError } = await sb.rpc('create_posts_table_if_not_exists');
+  if (postsError) console.log("Posts table check:", postsError.message);
+  
+  // Создаем таблицу для комментариев
+  const { error: commentsError } = await sb.rpc('create_comments_table_if_not_exists');
+  if (commentsError) console.log("Comments table check:", commentsError.message);
+  
+  // Создаем таблицу для лайков
+  const { error: likesError } = await sb.rpc('create_likes_table_if_not_exists');
+  if (likesError) console.log("Likes table check:", likesError.message);
+  
+  // Создаем таблицу для сообщений чата
+  const { error: messagesError } = await sb.rpc('create_messages_table_if_not_exists');
+  if (messagesError) console.log("Messages table check:", messagesError.message);
+  
+  // Создаем таблицу для подписок
+  const { error: followsError } = await sb.rpc('create_follows_table_if_not_exists');
+  if (followsError) console.log("Follows table check:", followsError.message);
+}
 </script>
 
 </head>
@@ -1460,7 +1485,10 @@ const sb = window.supabase.createClient(
   <script>
 const sitePassword = "enha7";
 const enteredPassword = prompt("Введите пароль:");
-
+if (enteredPassword !== sitePassword) {
+  document.body.innerHTML = "<h1 style='color:white;text-align:center;margin-top:50px;'>Доступ запрещён</h1>";
+  throw new Error("Неверный пароль");
+}
 </script>
 
 <div class="nowPlaying" id="nowPlaying">
@@ -1815,8 +1843,8 @@ let chosenStatus = localStorage.getItem("status") || "chibijungwon.png";
 let currentChatFriend = "";
 let activeAudio = null;
 let activeSongIndex = Number(localStorage.getItem("activeSongIndex")) || 0;
-let postsArray = JSON.parse(localStorage.getItem("postsArray")) || [];
-let messagesArray = JSON.parse(localStorage.getItem("messagesArray")) || [];
+let postsArray = [];
+let messagesArray = [];
 let publicProfileBack = "profile";
 
 const statuses = [
@@ -1935,7 +1963,221 @@ function getDbClient(){
   return null;
 }
 
-// ============= ФУНКЦИИ ПОДПИСОК (РАБОЧАЯ ВЕРСИЯ) =============
+// ============= ФУНКЦИИ ДЛЯ СИНХРОНИЗАЦИИ POSTS =============
+async function loadPostsFromSupabase(){
+  const db = getDbClient();
+  if(!db){
+    postsArray = JSON.parse(localStorage.getItem("postsArray") || "[]");
+    return postsArray;
+  }
+
+  try{
+    const { data, error } = await db.from("posts").select("*").order("created_at", { ascending: false });
+    if(error){
+      console.error("Posts load error:", error);
+      postsArray = JSON.parse(localStorage.getItem("postsArray") || "[]");
+      return postsArray;
+    }
+
+    const { data: commentsData, error: commentsError } = await db.from("comments").select("*").order("created_at", { ascending: true });
+    const { data: likesData, error: likesError } = await db.from("likes").select("*");
+    
+    const users = await loadUsersFromSupabase();
+    const userMap = {};
+    users.forEach(u => userMap[u.username] = u);
+    
+    const commentsByPost = {};
+    const commentMap = {};
+    
+    (commentsData || []).forEach(comment => {
+      const user = userMap[comment.username] || {};
+      const commentObj = {
+        id: comment.id,
+        name: user.name || comment.username || "Гость",
+        username: comment.username || "",
+        icon: user.icon || "jw.jpeg",
+        text: comment.text || "",
+        replies: []
+      };
+      commentMap[comment.id] = commentObj;
+      if(!comment.reply_to){
+        if(!commentsByPost[comment.post_id]) commentsByPost[comment.post_id] = [];
+        commentsByPost[comment.post_id].push(commentObj);
+      }
+    });
+    
+    (commentsData || []).forEach(comment => {
+      if(comment.reply_to){
+        const parent = commentMap[comment.reply_to];
+        if(parent){
+          const user = userMap[comment.username] || {};
+          parent.replies.push({
+            id: comment.id,
+            name: user.name || comment.username || "Гость",
+            username: comment.username || "",
+            icon: user.icon || "jw.jpeg",
+            text: comment.text || ""
+          });
+        }
+      }
+    });
+    
+    const likesByPost = {};
+    (likesData || []).forEach(like => {
+      if(!likesByPost[like.post_id]) likesByPost[like.post_id] = [];
+      if(!likesByPost[like.post_id].includes(like.username)){
+        likesByPost[like.post_id].push(like.username);
+      }
+    });
+    
+    postsArray = (data || []).map(post => {
+      const user = userMap[post.username] || {};
+      return {
+        id: post.id,
+        author: user.name || post.username || "Гость",
+        username: post.username || "",
+        text: post.text || "",
+        photo: post.image || "",
+        likes: (likesByPost[post.id] || []).length,
+        likedBy: likesByPost[post.id] || [],
+        comments: commentsByPost[post.id] || []
+      };
+    });
+    
+    localStorage.setItem("postsArray", JSON.stringify(postsArray));
+    return postsArray;
+  }catch(error){
+    console.error("Posts load error:", error);
+    postsArray = JSON.parse(localStorage.getItem("postsArray") || "[]");
+    return postsArray;
+  }
+}
+
+async function savePostToSupabase(post){
+  const db = getDbClient();
+  if(!db) return;
+  
+  try{
+    const { error } = await db.from("posts").insert([{
+      id: post.id,
+      username: post.username,
+      text: post.text || "",
+      image: post.photo || ""
+    }]);
+    if(error) console.error("Save post error:", error);
+  }catch(error){
+    console.error("Save post error:", error);
+  }
+}
+
+async function deletePostFromSupabase(postId){
+  const db = getDbClient();
+  if(!db) return;
+  
+  try{
+    await db.from("likes").delete().eq("post_id", postId);
+    await db.from("comments").delete().eq("post_id", postId);
+    await db.from("posts").delete().eq("id", postId);
+  }catch(error){
+    console.error("Delete post error:", error);
+  }
+}
+
+async function saveCommentToSupabase(comment, postId, replyTo = null){
+  const db = getDbClient();
+  if(!db) return;
+  
+  try{
+    const { error } = await db.from("comments").insert([{
+      id: comment.id,
+      post_id: postId,
+      username: comment.username,
+      text: comment.text,
+      reply_to: replyTo
+    }]);
+    if(error) console.error("Save comment error:", error);
+  }catch(error){
+    console.error("Save comment error:", error);
+  }
+}
+
+async function saveLikeToSupabase(postId, username){
+  const db = getDbClient();
+  if(!db) return;
+  
+  try{
+    const { error } = await db.from("likes").insert([{
+      id: safeId(),
+      post_id: postId,
+      username: username
+    }]);
+    if(error) console.error("Save like error:", error);
+  }catch(error){
+    console.error("Save like error:", error);
+  }
+}
+
+async function removeLikeFromSupabase(postId, username){
+  const db = getDbClient();
+  if(!db) return;
+  
+  try{
+    await db.from("likes").delete().eq("post_id", postId).eq("username", username);
+  }catch(error){
+    console.error("Remove like error:", error);
+  }
+}
+
+// ============= ФУНКЦИИ ДЛЯ СИНХРОНИЗАЦИИ MESSAGES =============
+async function loadMessagesFromSupabase(){
+  const db = getDbClient();
+  if(!db){
+    messagesArray = JSON.parse(localStorage.getItem("messagesArray") || "[]");
+    return messagesArray;
+  }
+  
+  try{
+    const { data, error } = await db.from("messages").select("*").order("created_at", { ascending: true });
+    if(error){
+      console.error("Messages load error:", error);
+      messagesArray = JSON.parse(localStorage.getItem("messagesArray") || "[]");
+      return messagesArray;
+    }
+    
+    messagesArray = (data || []).map(msg => ({
+      id: msg.id,
+      from: msg.from_user,
+      to: msg.to_user,
+      text: msg.text
+    }));
+    
+    localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
+    return messagesArray;
+  }catch(error){
+    console.error("Messages load error:", error);
+    messagesArray = JSON.parse(localStorage.getItem("messagesArray") || "[]");
+    return messagesArray;
+  }
+}
+
+async function saveMessageToSupabase(message){
+  const db = getDbClient();
+  if(!db) return;
+  
+  try{
+    const { error } = await db.from("messages").insert([{
+      id: message.id,
+      from_user: message.from,
+      to_user: message.to,
+      text: message.text
+    }]);
+    if(error) console.error("Save message error:", error);
+  }catch(error){
+    console.error("Save message error:", error);
+  }
+}
+
+// ============= ФУНКЦИИ ПОДПИСОК =============
 function getFollowsLocal(){
   return JSON.parse(localStorage.getItem("follows") || "{}");
 }
@@ -1947,18 +2189,18 @@ function setFollowsLocal(follows){
 async function loadFollowsFromSupabase(){
   const db = getDbClient();
   let follows = {};
-
+  
   if(!db){
     return getFollowsLocal();
   }
-
+  
   try{
     const { data, error } = await db.from("follows").select("*");
     if(error){
       console.warn("Follows load error:", error.message);
       return getFollowsLocal();
     }
-
+    
     (data || []).forEach(row=>{
       if(!row.follower || !row.following) return;
       if(!follows[row.follower]) follows[row.follower] = [];
@@ -1966,7 +2208,7 @@ async function loadFollowsFromSupabase(){
         follows[row.follower].push(row.following);
       }
     });
-
+    
     setFollowsLocal(follows);
     return follows;
   }catch(error){
@@ -1987,26 +2229,25 @@ function areFriendsLocal(userA, userB){
 async function toggleFollow(username){
   let myUsername = localStorage.getItem("username") || "";
   const db = getDbClient();
-
+  
   if(!myUsername){
     alert("Сначала войди в профиль.");
     return;
   }
-
+  
   if(myUsername === username) return;
-
+  
   let users = await loadUsersFromSupabase();
   if(!users.some(u => u.username === username)){
     alert("Профиль не найден.");
     await showFriend();
     return;
   }
-
+  
   await loadFollowsFromSupabase();
   let follows = getFollowsLocal();
-
+  
   if(isFollowingLocal(myUsername, username)){
-    // Отписаться
     if(follows[myUsername]){
       follows[myUsername] = follows[myUsername].filter(u => u !== username);
     }
@@ -2016,7 +2257,6 @@ async function toggleFollow(username){
       await db.from("follows").delete().eq("follower", myUsername).eq("following", username);
     }
   }else{
-    // Подписаться
     if(!follows[myUsername]) follows[myUsername] = [];
     if(!follows[myUsername].includes(username)){
       follows[myUsername].push(username);
@@ -2027,7 +2267,7 @@ async function toggleFollow(username){
       await db.from("follows").insert([{ id: safeId(), follower: myUsername, following: username }]);
     }
   }
-
+  
   await loadFollowsFromSupabase();
   updateFollowButton(username);
   await showFriend();
@@ -2044,16 +2284,16 @@ async function toggleFollowPublic(){
 function updateFollowButton(username){
   let btn = document.getElementById("followBtn");
   if(!btn) return;
-
+  
   let myUsername = localStorage.getItem("username") || "";
-
+  
   if(!myUsername || myUsername === username){
     btn.style.display = "none";
     return;
   }
-
+  
   btn.style.display = "inline-block";
-
+  
   if(areFriendsLocal(myUsername, username)){
     btn.innerText = "Вы друзья";
   }else if(isFollowingLocal(myUsername, username)){
@@ -2098,19 +2338,19 @@ async function loadUsersFromSupabase(){
   if(!window.supabase){
     return getUsers();
   }
-
+  
   try{
     const { data, error } = await sb.from(SUPABASE_USERS_TABLE).select("*");
     if(error){
       console.error("Supabase users load error:", error);
       return getUsers();
     }
-
+    
     let deleted = getDeletedUsers();
     let users = (data || [])
       .map(normalizeUserFromDb)
       .filter(user => user && user.username && !deleted.includes(user.username));
-
+    
     localStorage.setItem("users", JSON.stringify(users));
     return users;
   }catch(error){
@@ -2121,7 +2361,7 @@ async function loadUsersFromSupabase(){
 
 async function saveUserToSupabase(user){
   if(!window.supabase || !user || !user.username) return;
-
+  
   try{
     const row = userToDbRow(user);
     const { data:existing, error:selectError } = await sb
@@ -2129,12 +2369,12 @@ async function saveUserToSupabase(user){
       .select("id")
       .eq("username", user.username)
       .limit(1);
-
+    
     if(selectError){
       console.error("Supabase user check error:", selectError);
       return;
     }
-
+    
     if(existing && existing.length > 0){
       await sb.from(SUPABASE_USERS_TABLE).update(row).eq("username", user.username);
     }else{
@@ -2190,12 +2430,12 @@ function fillSelects(){
   songs.forEach(s=>songOptions += `<option>${s.title}</option>`);
   favSong.innerHTML = songOptions;
   editFavSong.innerHTML = songOptions;
-
+  
   let memberOptions = "";
   ["Jungwon","Heeseung","Jay","Jake","Sunghoon","Sunoo","Ni-ki"].forEach(m=>{
     memberOptions += `<option>${m}</option>`;
   });
-
+  
   bias.innerHTML = `<option value="">Выберите биаса</option>` + memberOptions;
   biasWrecker.innerHTML = `<option value="">Выберите биас врекера</option>` + memberOptions;
   editBias.innerHTML = `<option value="">Выберите биаса</option>` + memberOptions;
@@ -2362,7 +2602,7 @@ async function registerProfile(){
   let usernameValue = username.value.trim();
   let passwordValue = password.value.trim();
   let users = await loadUsersFromSupabase();
-
+  
   if(displayName.value.trim() === ""){
     alert("Введи имя");
     return;
@@ -2383,7 +2623,7 @@ async function registerProfile(){
     alert("Такой юзернейм уже занят.");
     return;
   }
-
+  
   localStorage.setItem("registered","yes");
   localStorage.setItem("name",displayName.value.trim());
   localStorage.setItem("username",usernameValue);
@@ -2397,9 +2637,9 @@ async function registerProfile(){
   localStorage.setItem("description",description.value);
   localStorage.setItem("status",chosenStatus);
   localStorage.setItem("lastSong","");
-
+  
   await saveUserToList();
-
+  
   registerBlock.style.display="none";
   settingsBlock.style.display="none";
   if(ownerDatabasePage) ownerDatabasePage.style.display="none";
@@ -2413,7 +2653,7 @@ async function loginProfile(){
   let usernameValue = loginEnter.value.trim();
   let passwordValue = passwordEnter.value.trim();
   let users = await loadUsersFromSupabase();
-
+  
   if(getDeletedUsers().includes(usernameValue)){
     alert("Этот профиль удалён владельцем сайта.");
     return;
@@ -2423,7 +2663,7 @@ async function loginProfile(){
     alert("Неверный юзернейм или пароль");
     return;
   }
-
+  
   localStorage.setItem("registered","yes");
   localStorage.setItem("name",user.name);
   localStorage.setItem("username",user.username);
@@ -2437,10 +2677,10 @@ async function loginProfile(){
   localStorage.setItem("description",user.description || "");
   localStorage.setItem("status",user.status || "chibijungwon.png");
   localStorage.setItem("lastSong",user.lastSong || "");
-
+  
   chosenIcon = user.icon || "jw.jpeg";
   chosenStatus = user.status || "chibijungwon.png";
-
+  
   registerBlock.style.display="none";
   settingsBlock.style.display="none";
   if(ownerDatabasePage) ownerDatabasePage.style.display="none";
@@ -2460,11 +2700,11 @@ function showProfile(){
   let favSongValue = localStorage.getItem("favSong") || "Bills";
   let descriptionValue = localStorage.getItem("description") || "описание не добавлено";
   let lastSongValue = localStorage.getItem("lastSong") || "пока не слушал(а)";
-
+  
   let biasMember = getMemberByName(biasValue);
   let wreckerMember = getMemberByName(biasWreckerValue);
   let song = getSongByTitle(favSongValue);
-
+  
   profileName.innerText = nameValue;
   profileStatus.src = status;
   profileUsername.innerText = usernameValue;
@@ -2505,13 +2745,13 @@ async function saveProfile(){
   if(newName === ""){ alert("Имя не может быть пустым"); return; }
   if(newUsername === ""){ alert("Юзернейм не может быть пустым"); return; }
   if(newPassword === ""){ alert("Пароль не может быть пустым"); return; }
-
+  
   let users = await loadUsersFromSupabase();
   let oldUsername = localStorage.getItem("username");
   let usernameBusy = users.some(u => u.username === newUsername && u.username !== oldUsername);
   if(usernameBusy){ alert("Такой юзернейм уже занят."); return; }
   if(oldUsername && oldUsername !== newUsername){ await deleteUserFromSupabase(oldUsername); }
-
+  
   localStorage.setItem("name", newName);
   localStorage.setItem("username", newUsername);
   localStorage.setItem("oldUsername", newUsername);
@@ -2523,7 +2763,7 @@ async function saveProfile(){
   localStorage.setItem("description", document.getElementById("editDescription").value);
   localStorage.setItem("icon", chosenIcon);
   localStorage.setItem("status", chosenStatus);
-
+  
   await saveUserToList();
   chosenIcon = localStorage.getItem("icon") || "jw.jpeg";
   chosenStatus = localStorage.getItem("status") || "chibijungwon.png";
@@ -2550,11 +2790,11 @@ async function openPublicProfile(username, backPlace){
   settingsBlock.style.display = "none";
   if(ownerDatabasePage) ownerDatabasePage.style.display = "none";
   document.getElementById("publicProfilePage").style.display = "block";
-
+  
   let biasMember = getMemberByName(user.bias || "Jungwon");
   let wreckerMember = getMemberByName(user.biasWrecker || "Jungwon");
   let song = getSongByTitle(user.favSong || "Bills");
-
+  
   publicAvatar.src = user.icon || "jw.jpeg";
   publicName.innerText = user.name || "Без имени";
   publicStatus.src = user.status || "chibijungwon.png";
@@ -2599,7 +2839,7 @@ function createPostHTML(post){
   let postUsername = post.username || (postUser ? postUser.username : "");
   let postAvatar = postUser ? (postUser.icon || "jw.jpeg") : "jw.jpeg";
   let commentsHTML = "";
-
+  
   post.comments.forEach((comment, commentIndex)=>{
     if(!comment.replies) comment.replies = [];
     let commentUser = getUsers().find(u => u.username === comment.username) || getUsers().find(u => u.name === comment.name);
@@ -2614,7 +2854,7 @@ function createPostHTML(post){
     });
     commentsHTML += `<div class="comment"><div class="commentTop"><img class="commentAvatar" src="${commentAvatar}" onclick="openProfileFromPost('${commentUsername}')"><span class="commentName" onclick="openProfileFromPost('${commentUsername}')">${escapeText(comment.name || 'Гость')}</span></div><div>${escapeText(comment.text)}</div><div class="replyBox">${repliesHTML}<div class="replyInputRow"><input id="reply-${post.id}-${commentIndex}" placeholder="Ответить на комментарий..."><button class="replyBtn" onclick="addReply(${post.id}, ${commentIndex})">Ответить</button></div></div></div>`;
   });
-
+  
   return `<div class="post"><div class="postAuthorRow"><img class="postUserAvatar" src="${postAvatar}" onclick="openProfileFromPost('${postUsername}')"><span class="postAuthorName" onclick="openProfileFromPost('${postUsername}')">${escapeText(post.author)}</span></div><div>${escapeText(post.text)}</div>${post.photo ? `<img src="${post.photo}">` : ""}<button class="likeBtn" onclick="likePost(${post.id})">♡ ${post.likes}</button>${canDeletePost(post) ? `<button class="deleteBtn" onclick="deletePost(${post.id})">Удалить запись</button>` : ""}<div><div class="commentInputRow"><input id="comment-${post.id}" placeholder="Комментарий..."><button class="commentSendBtn" onclick="addComment(${post.id})">Отправить</button></div>${commentsHTML}</div></div>`;
 }
 
@@ -2637,11 +2877,6 @@ function canDeletePost(post){
   return post.author === myName || post.username === myUsername || isOwner();
 }
 
-function findUserByPostInfo(username, name){
-  let users = getUsers();
-  return users.find(u => u.username === username) || users.find(u => u.name === name) || null;
-}
-
 function openProfileFromPost(username){
   let myUsername = localStorage.getItem("username") || "";
   if(!username) return;
@@ -2655,16 +2890,54 @@ function toggleProfilePostBox(){
   if(box) box.style.display = box.style.display === "block" ? "none" : "block";
 }
 
-function addProfilePost(){
+async function addProfilePost(){
   let text = document.getElementById("profilePostText").value;
   let file = document.getElementById("profilePostPhoto").files[0];
   let author = localStorage.getItem("name") || "Гость";
+  let username = localStorage.getItem("username") || "";
   if(text === "" && !file){ alert("Напиши запись или добавь фото"); return; }
+  
+  const postId = safeId();
+  let photoData = "";
+  
   if(file){
-    let reader = new FileReader();
-    reader.onload = function(e){ savePost(author, text, e.target.result); clearProfilePostInputs(); };
+    const reader = new FileReader();
+    reader.onload = async function(e){
+      photoData = e.target.result;
+      const newPost = {
+        id: postId,
+        author: author,
+        username: username,
+        text: text,
+        photo: photoData,
+        likes: 0,
+        likedBy: [],
+        comments: []
+      };
+      postsArray.unshift(newPost);
+      localStorage.setItem("postsArray", JSON.stringify(postsArray));
+      await savePostToSupabase(newPost);
+      await refreshAllData();
+      clearProfilePostInputs();
+    };
     reader.readAsDataURL(file);
-  }else{ savePost(author, text, ""); clearProfilePostInputs(); }
+  }else{
+    const newPost = {
+      id: postId,
+      author: author,
+      username: username,
+      text: text,
+      photo: "",
+      likes: 0,
+      likedBy: [],
+      comments: []
+    };
+    postsArray.unshift(newPost);
+    localStorage.setItem("postsArray", JSON.stringify(postsArray));
+    await savePostToSupabase(newPost);
+    await refreshAllData();
+    clearProfilePostInputs();
+  }
 }
 
 function clearProfilePostInputs(){
@@ -2673,32 +2946,65 @@ function clearProfilePostInputs(){
   document.getElementById("profilePostBox").style.display = "none";
 }
 
-function deletePost(id){
+async function deletePost(id){
   let post = postsArray.find(p => p.id === id);
   let myName = localStorage.getItem("name") || "Гость";
   let myUsername = localStorage.getItem("username") || "";
   if(!post) return;
   if(post.author !== myName && post.username !== myUsername && !isOwner()){ alert("Можно удалять только свои записи."); return; }
+  
   postsArray = postsArray.filter(p => p.id !== id);
   localStorage.setItem("postsArray", JSON.stringify(postsArray));
-  showPosts();
-  showProfilePosts();
-  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
-    let u = getUsers().find(x => x.username === publicUsername.innerText);
-    if(u) renderPublicPosts(u);
-  }
+  await deletePostFromSupabase(id);
+  await refreshAllData();
 }
 
-function addPost(){
+async function addPost(){
   let author = postName.value || localStorage.getItem("name") || "Гость";
   let text = postText.value;
   let file = postPhoto.files[0];
+  let username = localStorage.getItem("username") || "";
   if(text === "" && !file){ alert("Напиши запись или добавь фото"); return; }
+  
+  const postId = safeId();
+  
   if(file){
     let reader = new FileReader();
-    reader.onload = function(e){ savePost(author,text,e.target.result); clearPostInputs(); };
+    reader.onload = async function(e){
+      const newPost = {
+        id: postId,
+        author: author,
+        username: username,
+        text: text,
+        photo: e.target.result,
+        likes: 0,
+        likedBy: [],
+        comments: []
+      };
+      postsArray.unshift(newPost);
+      localStorage.setItem("postsArray", JSON.stringify(postsArray));
+      await savePostToSupabase(newPost);
+      await refreshAllData();
+      clearPostInputs();
+    };
     reader.readAsDataURL(file);
-  }else{ savePost(author,text,""); clearPostInputs(); }
+  }else{
+    const newPost = {
+      id: postId,
+      author: author,
+      username: username,
+      text: text,
+      photo: "",
+      likes: 0,
+      likedBy: [],
+      comments: []
+    };
+    postsArray.unshift(newPost);
+    localStorage.setItem("postsArray", JSON.stringify(postsArray));
+    await savePostToSupabase(newPost);
+    await refreshAllData();
+    clearPostInputs();
+  }
 }
 
 function clearPostInputs(){
@@ -2707,70 +3013,98 @@ function clearPostInputs(){
   postPhoto.value="";
 }
 
-function savePost(author,text,photo){
-  postsArray.push({
-    id:Date.now(),
-    author:author,
-    username:localStorage.getItem("username") || "",
-    text:text,
-    photo:photo,
-    likes:0,
-    comments:[]
-  });
-  localStorage.setItem("postsArray",JSON.stringify(postsArray));
-  showPosts();
-  showProfilePosts();
-  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
-    let u = getUsers().find(x => x.username === publicUsername.innerText);
-    if(u) renderPublicPosts(u);
+async function likePost(id){
+  let myUsername = localStorage.getItem("username") || "";
+  if(!myUsername){ alert("Сначала войди в профиль."); return; }
+  
+  let post = postsArray.find(p => p.id === id);
+  if(!post) return;
+  if(!post.likedBy) post.likedBy = [];
+  
+  if(post.likedBy.includes(myUsername)){
+    post.likedBy = post.likedBy.filter(u => u !== myUsername);
+    await removeLikeFromSupabase(id, myUsername);
+  }else{
+    post.likedBy.push(myUsername);
+    await saveLikeToSupabase(id, myUsername);
   }
+  
+  post.likes = post.likedBy.length;
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+  await refreshAllData();
 }
 
-function likePost(id){
-  let post = postsArray.find(p=>p.id===id);
-  post.likes++;
-  localStorage.setItem("postsArray",JSON.stringify(postsArray));
-  showPosts();
-  showProfilePosts();
-  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
-    let u = getUsers().find(x => x.username === publicUsername.innerText);
-    if(u) renderPublicPosts(u);
-  }
-}
-
-function addComment(id){
+async function addComment(id){
   let input = document.getElementById("comment-" + id);
   let text = input.value.trim();
-  let nameValue = localStorage.getItem("name") || "Гость";
   let usernameValue = localStorage.getItem("username") || "";
+  let nameValue = localStorage.getItem("name") || "Гость";
   let iconValue = localStorage.getItem("icon") || "jw.jpeg";
   if(text === "") return;
-  let post = postsArray.find(p=>p.id===id);
+  if(!usernameValue){ alert("Сначала войди в профиль."); return; }
+  
+  let post = postsArray.find(p => p.id === id);
   if(!post) return;
   if(!post.comments) post.comments = [];
-  post.comments.push({ name:nameValue, username:usernameValue, icon:iconValue, text:text, replies:[] });
+  
+  const commentId = safeId();
+  const newComment = {
+    id: commentId,
+    name: nameValue,
+    username: usernameValue,
+    icon: iconValue,
+    text: text,
+    replies: []
+  };
+  
+  post.comments.push(newComment);
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+  await saveCommentToSupabase(newComment, id, null);
+  await refreshAllData();
   input.value = "";
-  localStorage.setItem("postsArray",JSON.stringify(postsArray));
-  showPosts();
-  showProfilePosts();
 }
 
-function addReply(postId, commentIndex){
+async function addReply(postId, commentIndex){
   let input = document.getElementById("reply-" + postId + "-" + commentIndex);
   if(!input) return;
   let text = input.value.trim();
-  let nameValue = localStorage.getItem("name") || "Гость";
   let usernameValue = localStorage.getItem("username") || "";
+  let nameValue = localStorage.getItem("name") || "Гость";
   let iconValue = localStorage.getItem("icon") || "jw.jpeg";
   if(text === "") return;
-  let post = postsArray.find(p=>p.id===postId);
+  if(!usernameValue){ alert("Сначала войди в профиль."); return; }
+  
+  let post = postsArray.find(p => p.id === postId);
   if(!post || !post.comments || !post.comments[commentIndex]) return;
   if(!post.comments[commentIndex].replies) post.comments[commentIndex].replies = [];
-  post.comments[commentIndex].replies.push({ name:nameValue, username:usernameValue, icon:iconValue, text:text });
+  
+  const replyId = safeId();
+  const parentComment = post.comments[commentIndex];
+  const newReply = {
+    id: replyId,
+    name: nameValue,
+    username: usernameValue,
+    icon: iconValue,
+    text: text
+  };
+  
+  post.comments[commentIndex].replies.push(newReply);
+  localStorage.setItem("postsArray", JSON.stringify(postsArray));
+  await saveCommentToSupabase(newReply, postId, parentComment.id);
+  await refreshAllData();
   input.value = "";
-  localStorage.setItem("postsArray",JSON.stringify(postsArray));
+}
+
+async function refreshAllData(){
+  await loadPostsFromSupabase();
+  await loadMessagesFromSupabase();
   showPosts();
   showProfilePosts();
+  if(document.getElementById("publicProfilePage") && publicProfilePage.style.display === "block"){
+    let username = publicUsername.innerText;
+    if(username) renderPublicPosts(username);
+  }
+  showMessages();
 }
 
 // ============= ДРУЗЬЯ И ЧАТ =============
@@ -2796,23 +3130,35 @@ function openChat(friendName){
   showMessages();
 }
 
-function sendMessage(){
-  let text = chatText.value;
-  let myName = localStorage.getItem("username") || "Гость";
+async function sendMessage(){
+  let text = chatText.value.trim();
+  let myName = localStorage.getItem("username") || "";
   if(text === ""){ alert("Напиши сообщение"); return; }
-  messagesArray.push({ from:myName, to:currentChatFriend, text:text });
-  localStorage.setItem("messagesArray",JSON.stringify(messagesArray));
-  chatText.value="";
+  if(!myName){ alert("Сначала войди в профиль."); return; }
+  
+  const newMessage = {
+    id: safeId(),
+    from: myName,
+    to: currentChatFriend,
+    text: text
+  };
+  
+  messagesArray.push(newMessage);
+  localStorage.setItem("messagesArray", JSON.stringify(messagesArray));
+  await saveMessageToSupabase(newMessage);
+  await loadMessagesFromSupabase();
+  chatText.value = "";
   showMessages();
 }
 
 function showMessages(){
   messages.innerHTML="";
   let myName = localStorage.getItem("username") || "Гость";
+  
   messagesArray.forEach(msg=>{
-    if(msg.to === currentChatFriend || msg.from === currentChatFriend){
+    if((msg.from === myName && msg.to === currentChatFriend) || (msg.from === currentChatFriend && msg.to === myName)){
       let side = msg.from === myName ? "me" : "other";
-      messages.innerHTML += `<div class="message ${side}"><div>${msg.text}</div></div>`;
+      messages.innerHTML += `<div class="message ${side}"><div>${escapeText(msg.text)}</div></div>`;
     }
   });
   messages.scrollTop = messages.scrollHeight;
@@ -2863,7 +3209,7 @@ async function renderOwnerDatabase(){
   if(!isOwner()){ if(page) page.style.display = "none"; return; }
   let users = await loadUsersFromSupabase();
   if(users.length === 0){ list.innerHTML = "<p>Пока нет аккаунтов.</p>"; return; }
-  list.innerHTML = users.map(user => `<div class="ownerDbCard"><img src="${user.icon || 'jw.jpeg'}"><div class="ownerDbInfo"><b>${user.name || 'Без имени'}</b><br><span>${user.username || ''}</span><br><small>Биас: ${user.bias || 'не выбран'}<br>Последняя песня: ${user.lastSong || 'пока не слушал(а)'}</small></div><div class="ownerDbActions"><button class="ownerSmallBtn" onclick="openPublicProfile('${user.username}', 'database')">Профиль</button>${user.username === OWNER_USERNAME ? '<b>Владелец</b>' : `<button class="deleteBtn" onclick="deleteUser('${user.username}')">Удалить</button>`}</div></div>`).join("");
+  list.innerHTML = users.map(user => `<div class="ownerDbCard"><img src="${user.icon || 'jw.jpeg'}"><div class="ownerDbInfo"><b>${user.name || 'Без имени'}</b><br><span>${user.username || ''}</span><br><small>Биас: ${user.bias || 'не выбран'}<br>Любимая песня: ${user.favSong || 'не выбрана'}</small></div><div class="ownerDbActions"><button class="ownerSmallBtn" onclick="openPublicProfile('${user.username}', 'database')">Профиль</button>${user.username === OWNER_USERNAME ? '<b>Владелец</b>' : `<button class="deleteBtn" onclick="deleteUser('${user.username}')">Удалить</button>`}</div></div>`).join("");
 }
 
 async function deleteUser(username){
@@ -2964,6 +3310,8 @@ cleanDeletedData();
 (async()=>{
   await loadUsersFromSupabase();
   await loadFollowsFromSupabase();
+  await loadPostsFromSupabase();
+  await loadMessagesFromSupabase();
   await showFriend();
   showPosts();
   showMessages();
