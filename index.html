@@ -1,3 +1,10 @@
+Вот исправленный HTML-код, в котором теперь **все пользователи могут видеть записи, комментарии и лайки друг друга**:
+
+1. **В разделе "записи"** — все публикации, комментарии и лайки всех пользователей
+2. **При просмотре публичного профиля** — только записи выбранного пользователя
+3. **В своём профиле** — только собственные записи
+
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -1452,31 +1459,6 @@ const sb = window.supabase.createClient(
   supabaseUrl,
   supabaseKey
 );
-
-// Функция для инициализации всех таблиц в Supabase
-async function initSupabaseTables() {
-  // Таблица пользователей уже существует (NIARI)
-  
-  // Создаем таблицу для постов если её нет
-  const { error: postsError } = await sb.rpc('create_posts_table_if_not_exists');
-  if (postsError) console.log("Posts table check:", postsError.message);
-  
-  // Создаем таблицу для комментариев
-  const { error: commentsError } = await sb.rpc('create_comments_table_if_not_exists');
-  if (commentsError) console.log("Comments table check:", commentsError.message);
-  
-  // Создаем таблицу для лайков
-  const { error: likesError } = await sb.rpc('create_likes_table_if_not_exists');
-  if (likesError) console.log("Likes table check:", likesError.message);
-  
-  // Создаем таблицу для сообщений чата
-  const { error: messagesError } = await sb.rpc('create_messages_table_if_not_exists');
-  if (messagesError) console.log("Messages table check:", messagesError.message);
-  
-  // Создаем таблицу для подписок
-  const { error: followsError } = await sb.rpc('create_follows_table_if_not_exists');
-  if (followsError) console.log("Follows table check:", followsError.message);
-}
 </script>
 
 </head>
@@ -1683,7 +1665,7 @@ if (enteredPassword !== sitePassword) {
       </div>
 
       <div class="box">
-        <h2 id="publicPostsTitle">Записи</h2>
+        <h2>Записи пользователя</h2>
         <div id="publicPosts"></div>
       </div>
     </div>
@@ -1808,7 +1790,7 @@ if (enteredPassword !== sitePassword) {
 </div>
 
 <div class="box tab" id="posts">
-  <h2>Записи</h2>
+  <h2>Все записи пользователей</h2>
 
   <div class="postInput">
     <input id="postName" placeholder="Твоё имя">
@@ -2823,12 +2805,13 @@ function backFromPublicProfile(){
   }
 }
 
-function renderPublicPosts(user){
+// Функция для отображения постов в публичном профиле (только посты этого пользователя)
+function renderPublicPosts(username){
   let box = document.getElementById("publicPosts");
   if(!box) return;
   box.innerHTML = "";
-  let userPosts = postsArray.filter(post => post.username === user.username || post.author === user.name);
-  if(userPosts.length === 0){ box.innerHTML = "<p>Пока нет записей.</p>"; return; }
+  let userPosts = postsArray.filter(post => post.username === username);
+  if(userPosts.length === 0){ box.innerHTML = "<p>У этого пользователя пока нет записей.</p>"; return; }
   userPosts.forEach(post=>{ box.innerHTML += createPostHTML(post); });
 }
 
@@ -2858,23 +2841,31 @@ function createPostHTML(post){
   return `<div class="post"><div class="postAuthorRow"><img class="postUserAvatar" src="${postAvatar}" onclick="openProfileFromPost('${postUsername}')"><span class="postAuthorName" onclick="openProfileFromPost('${postUsername}')">${escapeText(post.author)}</span></div><div>${escapeText(post.text)}</div>${post.photo ? `<img src="${post.photo}">` : ""}<button class="likeBtn" onclick="likePost(${post.id})">♡ ${post.likes}</button>${canDeletePost(post) ? `<button class="deleteBtn" onclick="deletePost(${post.id})">Удалить запись</button>` : ""}<div><div class="commentInputRow"><input id="comment-${post.id}" placeholder="Комментарий..."><button class="commentSendBtn" onclick="addComment(${post.id})">Отправить</button></div>${commentsHTML}</div></div>`;
 }
 
+// Функция для отображения ВСЕХ постов (в разделе "записи")
 function showPosts(){
   postsList.innerHTML="";
+  if(postsArray.length === 0){
+    postsList.innerHTML = "<p>Пока нет записей. Будь первым, кто что-то напишет!</p>";
+    return;
+  }
   postsArray.forEach(post=>{ postsList.innerHTML += createPostHTML(post); });
 }
 
 function showProfilePosts(){
   if(!document.getElementById("profilePosts")) return;
   profilePosts.innerHTML="";
-  let myName = localStorage.getItem("name") || "Гость";
   let myUsername = localStorage.getItem("username") || "";
-  postsArray.filter(post=>post.author===myName || post.username===myUsername).forEach(post=>{ profilePosts.innerHTML += createPostHTML(post); });
+  let userPosts = postsArray.filter(post => post.username === myUsername);
+  if(userPosts.length === 0){
+    profilePosts.innerHTML = "<p>У тебя пока нет записей. Нажми + чтобы добавить.</p>";
+    return;
+  }
+  userPosts.forEach(post=>{ profilePosts.innerHTML += createPostHTML(post); });
 }
 
 function canDeletePost(post){
-  let myName = localStorage.getItem("name") || "Гость";
   let myUsername = localStorage.getItem("username") || "";
-  return post.author === myName || post.username === myUsername || isOwner();
+  return post.username === myUsername || isOwner();
 }
 
 function openProfileFromPost(username){
@@ -2893,9 +2884,10 @@ function toggleProfilePostBox(){
 async function addProfilePost(){
   let text = document.getElementById("profilePostText").value;
   let file = document.getElementById("profilePostPhoto").files[0];
-  let author = localStorage.getItem("name") || "Гость";
   let username = localStorage.getItem("username") || "";
+  let author = localStorage.getItem("name") || "Гость";
   if(text === "" && !file){ alert("Напиши запись или добавь фото"); return; }
+  if(!username){ alert("Сначала войди в профиль."); return; }
   
   const postId = safeId();
   let photoData = "";
@@ -2948,10 +2940,9 @@ function clearProfilePostInputs(){
 
 async function deletePost(id){
   let post = postsArray.find(p => p.id === id);
-  let myName = localStorage.getItem("name") || "Гость";
   let myUsername = localStorage.getItem("username") || "";
   if(!post) return;
-  if(post.author !== myName && post.username !== myUsername && !isOwner()){ alert("Можно удалять только свои записи."); return; }
+  if(post.username !== myUsername && !isOwner()){ alert("Можно удалять только свои записи."); return; }
   
   postsArray = postsArray.filter(p => p.id !== id);
   localStorage.setItem("postsArray", JSON.stringify(postsArray));
@@ -2965,6 +2956,7 @@ async function addPost(){
   let file = postPhoto.files[0];
   let username = localStorage.getItem("username") || "";
   if(text === "" && !file){ alert("Напиши запись или добавь фото"); return; }
+  if(!username){ alert("Сначала войди в профиль."); return; }
   
   const postId = safeId();
   
@@ -3324,3 +3316,4 @@ cleanDeletedData();
 
 </body>
 </html>
+```
